@@ -41,8 +41,8 @@ app.commandLine.appendSwitch('disable-features','NativeFixtureSentinel');
 if(!before)require(path.join(codeRoot,'out/main/main/core/window-rendering')).configureWindowRendering(app);
 const states = new Map(ids.map(id=>[id,{revision:0,unread:true}]));
 const markup='<main role="main"><table><tr class="zA zE"><td class="yW"><span email="fixture@example.test">Fixture</span></td><td><span class="bog" data-legacy-thread-id="thread-a">Subject</span></td></tr></table></main>';
-const body = '<!doctype html><body><script>window.started=false;window.painted=false;window.applied=0;setTimeout(()=>document.body.insertAdjacentHTML("beforeend",'+JSON.stringify(markup)+'),1500);function start(){if(started||!painted||!document.hasFocus())return;started=true;setInterval(async()=>{const v=await(await fetch("/fixture/state",{cache:"no-store"})).json();if(v.revision===applied)return;requestAnimationFrame(()=>{document.querySelector("tr").className="zA "+(v.unread?"zE":"yO");applied=v.revision;});},250);}addEventListener("focus",start);new PerformanceObserver(entries=>{if(!entries.getEntries().some(e=>e.name==="first-contentful-paint"))return;painted=true;start();}).observe({type:"paint",buffered:true});</script>';
-const wait = async(fn, label) => {const end=Date.now()+15000;while(Date.now()<end){if(await fn())return;await new Promise(r=>setTimeout(r,150));}throw Error(label);};
+const body = '<!doctype html><body><script>window.started=false;window.painted=false;window.applied=0;window.transportReady=false;window.appActive=document.hasFocus();setTimeout(()=>{transportReady=true;},6000);setTimeout(()=>{document.body.insertAdjacentHTML("beforeend",'+JSON.stringify(markup)+');addEventListener("focus",()=>{appActive=true;start();});addEventListener("blur",()=>{appActive=false;});start();},1500);function start(){if(started||!painted||!appActive||!transportReady)return;started=true;setInterval(async()=>{if(!appActive)return;const v=await(await fetch("/fixture/state",{cache:"no-store"})).json();if(v.revision===applied)return;requestAnimationFrame(()=>{document.querySelector("tr").className="zA "+(v.unread?"zE":"yO");applied=v.revision;});},250);}new PerformanceObserver(entries=>{if(!entries.getEntries().some(e=>e.name==="first-contentful-paint"))return;painted=true;start();}).observe({type:"paint",buffered:true});</script>';
+const wait = async(fn, label, timeout=15000) => {const end=Date.now()+timeout;while(Date.now()<end){if(await fn())return;await new Promise(r=>setTimeout(r,150));}throw Error(label);};
 app.whenReady().then(async()=>{
   let c, exitCode=0;
   try{
@@ -57,7 +57,7 @@ app.whenReady().then(async()=>{
     await wait(()=>pages().length===2&&pages().every(w=>!w.isLoading()),'fixture load');
     const sample=()=>Promise.all(pages().map(w=>w.executeJavaScript('({painted:performance.getEntriesByType("paint").some(e=>e.name==="first-contentful-paint"),started,focus:document.hasFocus(),hidden:document.hidden,unread:document.querySelector("tr").classList.contains("zE")})')));
     await new Promise(r=>setTimeout(r,2500));
-    if(!before)await wait(async()=>{const s=await sample();return s.every(p=>p.painted&&p.started);},'background initialization');
+    if(!before)await wait(async()=>{await c.read();const s=await sample();return s.every(p=>p.painted&&p.started);},'late receive-channel initialization starts background updates',60000);
     const initial=await sample();
     const background=BrowserWindow.getAllWindows()[0];
     assert.equal(background.getOpacity(),0);assert.equal(background.isFocused(),false);
@@ -65,6 +65,12 @@ app.whenReady().then(async()=>{
     assert.ok(initial.every(p=>p.focus===!before&&!p.hidden));
     if(before){assert.ok(initial.every(p=>!p.started));fs.writeFileSync(path.join(profile,'result.json'),JSON.stringify({ok:true,regressionReproduced:true,initial}));console.log(profile);return;}
     assert.ok(initial.every(p=>p.painted&&p.started));
+    const routePage=pages()[0];
+    await routePage.executeJavaScript('history.replaceState(null,"","#sent")');
+    await routePage.executeJavaScript('location.hash="inbox"');
+    await new Promise(r=>setTimeout(r,300));
+    assert.equal(routePage.debugger.isAttached(),true,'active policy survives same-document routes');
+    assert.equal(await routePage.executeJavaScript('document.hasFocus()'),true,'page remains active after routes');
     assert.ok(app.commandLine.getSwitchValue('disable-features').includes('NativeFixtureSentinel'));
     const monitors=new Map(ids.map(id=>[id,new InboxMonitor()]));
     const tick=async()=>{const value=await c.read();for(const a of value.accounts)monitors.get(a.id).observe(a.observation);return value;};
@@ -75,7 +81,7 @@ app.whenReady().then(async()=>{
     await wait(async()=>{await tick();return monitors.get(ids[1]).pending===1;},'never-selected account remote unread');
     assert.equal(c.snapshot().selected,ids[0]);
     for(const w of pages())w.reload();
-    await wait(async()=>{const s=await sample().catch(()=>[]);return s.length===2&&s.every(p=>p.painted&&p.started);},'reload first paint');
+    await wait(async()=>{await c.read();const s=await sample().catch(()=>[]);return s.length===2&&s.every(p=>p.painted&&p.started);},'reload receive-channel initialization',60000);
     states.set(ids[0],{revision:1,unread:false});
     await wait(async()=>{await tick();return monitors.get(ids[0]).pending===0;},'reload remote update');
     const after=await sample();
@@ -85,7 +91,7 @@ app.whenReady().then(async()=>{
     assert.equal(page.debugger.isAttached(),false);
     assert.equal(await page.executeJavaScript('document.hasFocus()'),false);
     await page.loadURL('https://mail.google.com/mail/u/0/#inbox');
-    await wait(()=>page.debugger.isAttached(),'return to observation origin');
+    await wait(async()=>{await c.read();return page.debugger.isAttached();},'return to observation origin');
     await c.close();c=undefined;
     await new Promise(r=>setTimeout(r,500));
     assert.equal(BrowserWindow.getAllWindows().length,0);

@@ -10,6 +10,8 @@ const hostRequire = createRequire(path.join(host, "package.json"));
 const profile = path.join(root, "artifacts/gmail-dev");
 const actionFile = path.join(profile, "startup-action.json");
 const resultFile = path.join(profile, "startup-native-probe.json");
+const endpointFile = path.join(profile, "startup-inspector.txt");
+const manual = process.argv.includes("--manual");
 const env = { ...process.env };
 const duration = Number(
   process.argv
@@ -51,6 +53,7 @@ const actions = {
       child.on("error", reject);
       child.on("exit", () => reject(Error("Electron exited before inspector")));
     });
+    fs.writeFileSync(endpointFile, endpoint);
     ws = new WebSocket(endpoint);
     await new Promise((r) => ws.addEventListener("open", r, { once: true }));
     let sequence = 0;
@@ -85,7 +88,7 @@ const actions = {
     let lastAction = "";
     for (
       let i = 0;
-      i < Math.ceil(duration / 5000) && child.exitCode === null;
+      (manual || i < Math.ceil(duration / 5000)) && child.exitCode === null;
       i++
     ) {
       const action = JSON.parse(fs.readFileSync(actionFile, "utf8"));
@@ -97,12 +100,12 @@ const actions = {
       }
       await new Promise((r) => setTimeout(r, 5000));
       const pages = await evaluate(
-        `(async()=>Promise.all(mailPages().map(async(w,index)=>{const owner=backgroundWindows().find(b=>b.contentView.children.some(v=>v.webContents===w));return {index,loading:w.isLoading(),nativeFocus:w.isFocused(),ownerFocused:owner?.isFocused(),ownerOpacity:owner?.getOpacity(),network:liveNetwork.get(w.session.storagePath),dom:await w.executeJavaScriptInIsolatedWorld(1002,[{code:"({hidden:document.hidden,focus:document.hasFocus(),painted:performance.getEntriesByType('paint').some(e=>e.name==='first-contentful-paint'),rows:document.querySelectorAll('tr.zA').length,unread:document.querySelectorAll('tr.zA.zE').length,resources:performance.getEntriesByType('resource').length})"}])};})))()`,
+        `(async()=>Promise.all(mailPages().map(async(w,index)=>{const owner=backgroundWindows().find(b=>b.contentView.children.some(v=>v.webContents===w));return {index,loading:w.isLoading(),debuggerAttached:w.debugger.isAttached(),nativeFocus:w.isFocused(),ownerFocused:owner?.isFocused(),ownerOpacity:owner?.getOpacity(),network:liveNetwork.get(w.session.storagePath),dom:await w.executeJavaScriptInIsolatedWorld(1002,[{code:"({hidden:document.hidden,focus:document.hasFocus(),inbox:location.hash==='#inbox',painted:performance.getEntriesByType('paint').some(e=>e.name==='first-contentful-paint'),rows:document.querySelectorAll('tr.zA').length,unread:document.querySelectorAll('tr.zA.zE').length,resources:performance.getEntriesByType('resource').length})"}])};})))()`,
       );
       const summary = await evaluate(
         `(()=>{try{const c=process.mainModule.require(${JSON.stringify(path.join(host, "out/main/main/core/web-accounts"))}).getWebAccounts('at365.gmail');return {pending:c.snapshot().accounts.map(a=>a.data?.pending??0),uiOpened:electron.BrowserWindow.getAllWindows().some(w=>w.webContents.getURL().includes('/web/index.html')),hardwareAcceleration:electron.app.isHardwareAccelerationEnabled()};}catch{return null;}})()`,
       );
-      const value = { phase, pages, summary };
+      const value = { elapsedSeconds: (i + 1) * 5, phase, pages, summary };
       samples.push(value);
       fs.writeFileSync(resultFile, JSON.stringify(samples, null, 2));
       if (
@@ -121,6 +124,7 @@ const actions = {
     }
     await evaluate("electron.app.quit()").catch(() => {});
   } finally {
+    fs.rmSync(endpointFile, { force: true });
     ws?.close();
     if (child.exitCode === null)
       await new Promise((r) => {

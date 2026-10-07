@@ -1,5 +1,15 @@
 # 検証記録
 
+## 2026-10-08: 0.4.2 初回未表示の実受信と同期再開
+
+- 0.4.1/AppDock0.15.1でも、未表示タブでは受信せず、その後表示しても反映せず、受信トレイへ/再読み込みだけで反映するとの報告。実利用EXEとmanifestの版を読み取り照合。ユーザーが2つ目の開発用アカウントをログインし、アカウント1/3をそれぞれメールアドレスへ改名した。ユーザーの送受信テストの指示を受け、その2アカウント間だけで固定の件名・本文のテストメールを計5通送信した。送信前にアカウント/宛先/件名/本文を照合し、既存メールの本文・認証値は取得せず、既読/未読の操作は行っていない。
+- テスト01: 送信完了後179秒でも未表示側は未反映。受信側を表示・native focusしても191秒時点で未反映。背景へ戻してアクティブ状態を1回更新すると243秒時点で反映。テスト02は追加操作なしで20秒時点に反映した。paint/rAF（約110回/秒）/タイマー/オンライン状態/ページのfocusは維持されていても、Gmailの受信同期が始まらないケースを再現した。
+- DOMのobserver.ready:true後にアクティブ化するだけの候補でも、テスト03は64秒時点で未反映。受信側を一度も表示せずアクティブ状態を更新すると133秒時点で反映。readyだけを同期開始の証拠にせず、背景で30秒ごとに250msだけ解除して再適用するホスト0.15.2を最終方式にした。操作中のnative focusはエミュレーションを解除し、通常のfocus/blurを優先する。画面の自動切替・Windowsフォーカス移動・定期reloadは行わない。
+- 最終候補のテスト04: 再起動後、受信側を一度も表示せず15秒時点で新規行と未読新着を確認。テスト05: もう一度再起動し逆方向に送信。受信側未表示のまま、15秒時点では未反映、81秒時点で反映（正確な到着秒数はこの観測区間内）。背景周期に加えてGoogleの通信時間があるため、30秒以内の到着を保証するものではない。`artifacts/delivery-renewal-cold-start.json`、`artifacts/delivery-renewal-cold-reverse-later.json`、`artifacts/gmail-dev/startup-native-renewal-luna.json`、`artifacts/gmail-dev/startup-native-renewal-alice.json`に記録。両方ともGPUオフ、保存認証保持。
+- 通常Electronのfixtureも、DOM準備後に受信処理が遅れて初期化される条件へ強化。初期化待ちだけの旧条件で失敗を確認後、2枠の背景同期/未読状態/hash・history移動/再読み込み/認証/正常破棄が成功。最終app.asar: `artifacts/native-background-1791399095693/result.json`。型検査/Vite、ホスト86/86・Gmail15/15成功。単一EXE: `artifacts/portable-1791399100255/result.json`（0.15.2、exitCode0、停止/再開/正常終了）。認証: `artifacts/auth-redirect-1791399111873/result.json`（Google/YouTube/日本向けGoogle/Workspace、GPUオフ、認証中の解除）。
+- 最終EXE100,442,774 bytes、SHA256 `11D9CABB02DAF33388768D1E227DEB9DD1FEB990B1657EE4D03AAB203C8C4D95`。.NETはframework-dependent、Runtime混入なし。Gmail0.4.2は本体0.15.2も必要。開発配置のみ更新し、保存認証を保持したGPUオフの通常テストアプリを起動。外部push/実利用先deployなし。実長期常駐・実スリープ復帰は未確認。
+- Windows画面操作ツールの初期化はhelper_unknown_errorで失敗。ユーザーによる完全終了後、開発アプリの主プロセスInspectorで対象アカウントとGmailの実DOMを照合して検証した。診断の--manualは自動終了なしとし、quit指示で正常終了する。途中の送信前チェックは宛先確定後の入力残りを検出して中止し、宛先1件と入力欄の空を確認してから送信したため、その失敗時の重複送信はない。
+
 ## 2026-10-08: 0.4.1 初回未表示の更新開始と終了エラー
 
 - ユーザーが0.4.0/AppDock0.15.0でも、一度Web画面を表示した枠だけ更新されると報告。前回のPlaywright検証は自動のEmulation.setFocusEmulationEnabledにより通常起動のフォーカス条件を変えていた。前回のrAF/paint確認だけでは実Gmailの更新開始の証拠として不十分だった。
