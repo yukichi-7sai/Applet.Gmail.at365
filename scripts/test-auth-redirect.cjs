@@ -16,6 +16,7 @@ fs.cpSync(
 const settings = hostRequire(
   "./out/main/shared/settings-schema",
 ).createDefaultSettings();
+settings.host.hardwareAcceleration = false;
 settings.extensions["at365.gmail"] = {
   enabled: false,
   settings: { notifications: false },
@@ -42,6 +43,12 @@ async function until(fn, message) {
   try {
     const dock = await application.firstWindow();
     await dock.waitForFunction(() => !!window.dock);
+    assert.equal(
+      await application.evaluate(({ app }) =>
+        app.isHardwareAccelerationEnabled(),
+      ),
+      false,
+    );
     await application.evaluate(({ app }) => {
       globalThis.__authFixtureOrigins = [];
       app.on("web-contents-created", (_event, wc) =>
@@ -86,6 +93,18 @@ async function until(fn, message) {
             return Response.redirect(
               "https://accounts.youtube.com.evil.test/fixture-check?token=fixture-secret",
             );
+          if (
+            u.hostname === "accounts.google.com" &&
+            u.pathname === "/fixture-logout"
+          )
+            return Response.redirect(
+              "https://workspace.google.com/intl/ja/gmail/?token=fixture-secret",
+            );
+          if (u.hostname === "workspace.google.com")
+            return new Response(
+              '<!doctype html><title>Logged out fixture</title><a href="https://accounts.google.com/fixture-login">Log in</a>',
+              { headers: { "content-type": "text/html; charset=utf-8" } },
+            );
           return new Response(
             '<!doctype html><title>Auth redirect fixture</title><main role="main"><table><tr class="zA"><td data-legacy-thread-id="fixture-mail">Offline fixture</td></tr></table></main>',
             { headers: { "content-type": "text/html; charset=utf-8" } },
@@ -127,6 +146,26 @@ async function until(fn, message) {
       const wc = webContents
         .getAllWebContents()
         .find((w) => w.getURL().startsWith("https://mail.google.com"));
+      await wc.loadURL("https://accounts.google.com/fixture-logout");
+    });
+    await until(
+      async () =>
+        (await snap()).accounts[0].url === "https://workspace.google.com",
+      "logout landing page",
+    );
+    const logout = await snap();
+    assert.equal(logout.accounts[0].error, "");
+    assert.equal(logout.accounts[0].observation, null);
+    assert.ok(!JSON.stringify(logout).includes("fixture-secret"));
+    await ui.evaluate(() => window.webAccounts.navigate("inbox"));
+    await until(
+      async () => (await snap()).accounts[0].status === "受信トレイを監視中",
+      "re-login after logout",
+    );
+    await application.evaluate(async ({ webContents }) => {
+      const wc = webContents
+        .getAllWebContents()
+        .find((w) => w.getURL().startsWith("https://mail.google.com"));
       await wc
         .loadURL("https://accounts.google.com/fixture-blocked")
         .catch(() => {});
@@ -157,6 +196,8 @@ async function until(fn, message) {
         "lookalike origin blocked",
         "auth token absent from local UI",
         "error clears on recovery",
+        "logout reaches workspace.google.com and re-login returns to Gmail",
+        "hardware acceleration disabled",
       ],
     };
     fs.writeFileSync(

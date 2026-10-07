@@ -10,18 +10,24 @@ fs.cpSync(
   path.join(profile, "extensions/Applet.Gmail.at365"),
   { recursive: true },
 );
-if (!fs.existsSync(path.join(profile, "settings.json"))) {
-  const settings = require(
-    path.join(host, "out/main/shared/settings-schema"),
-  ).createDefaultSettings();
+const settingsFile = path.join(profile, "settings.json");
+const firstLaunch = !fs.existsSync(settingsFile);
+const { SettingsStore } = require(
+  path.join(host, "out/main/main/core/settings"),
+);
+const store = new SettingsStore(settingsFile);
+const savedSettings = store.load();
+const settings = savedSettings.value;
+if (firstLaunch) {
   settings.extensions["at365.gmail"] = {
     enabled: true,
     settings: { notifications: true },
   };
-  fs.writeFileSync(
-    path.join(profile, "settings.json"),
-    JSON.stringify(settings, null, 2),
-  );
+}
+// This profile is dedicated to Gmail testing; honor the requested software rendering.
+if (firstLaunch || settings.host.hardwareAcceleration !== false) {
+  settings.host.hardwareAcceleration = false;
+  store.save(settings, savedSettings.revision);
 }
 // Explicit opt-in, development-only import. The source stays intact. Stop the old
 // test app first; never merge live Chromium databases or overwrite existing accounts.

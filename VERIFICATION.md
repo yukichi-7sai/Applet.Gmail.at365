@@ -1,5 +1,14 @@
 # 検証記録
 
+## 2026-10-07: 0.1.2 ログアウト後の移動先とテスト用GPUオフ
+
+- 開発用テスト画面でのログアウト後、`https://workspace.google.com`への転送が未対応として遮断されたとの報告。Gmailの公式案内・ログイン入口があるoriginとして正確に追加。Gmail専用observeOriginを維持。旧Web表示テストにもYouTube認証先とWorkspaceの許可を反映。
+- 利用者の指定で、新しいGmail開発profileと全Gmail GUI/portable/認証fixtureを`hardwareAcceleration: false`に変更。prepare-devはSettingsStoreで既存の他設定を保持し、起動前にGPUオフを保存する。旧独立Web表示テストはapp.readyより前にdisableHardwareAccelerationを呼ぶ。
+- `publish.bat -Test`成功、型検査・Vite・8/8回帰成功。発行版ホストの認証GUIでYouTube経由ログイン、Workspaceへログアウト、Gmailへの再ログインをオフライン302で再現。`app.isHardwareAccelerationEnabled() === false`を実Electronで確認。類似origin遮断・認証query非公開・エラー解除も成功。結果: `artifacts/auth-redirect-1791365383107/result.json`。
+- 旧Web表示テストのmain/renderer型検査・Vite・保存境界2/2成功。旧テストのオフラインGUIでGPU無効、アカウントCookie分離、再起動保持等を確認。結果: `../Applet.GmailChecker.at365/artifacts/web-fixture-1791365449444/result.json`。
+- 実利用・開発配置のGmail manifestを0.1.2へ更新し、実利用先では独自変更なしと発行元SHA256一致を確認。ホストEXE・保存済みログイン領域は変更していない。
+- 実Googleでのログアウト→再ログインは利用者確認待ち。GPUドライバとの相性問題の原因自体は今回独立診断していない。
+
 ## 2026-10-07: 0.1.1 Google認証のYouTube経由に対応
 
 - 実利用環境で利用者自身がログインした際、`https://accounts.youtube.com`へのトップレベル転送を未対応として遮断したとの報告。Gmail Appletの`webAccounts.origins`にこの認証originが未宣言だったことを確認し、正確な1 originだけ追加。observeOriginはGmailのまま。ホストコード/EXEの変更は不要。

@@ -15,6 +15,7 @@ test("Gmail allows the Google sign-in chain through accounts.youtube.com", () =>
     "https://accounts.youtube.com/fixture-check?continue=https%3A%2F%2Fmail.google.com",
     "https://accounts.google.com/fixture-return",
     "https://mail.google.com/mail/u/0/#inbox",
+    "https://workspace.google.com/intl/ja/gmail/",
   ])
     assert.equal(allowedWebNavigation(url, origins), true);
   assert.equal(manifest.webAccounts.observeOrigin, "https://mail.google.com");
@@ -25,6 +26,9 @@ test("Gmail allows the Google sign-in chain through accounts.youtube.com", () =>
     "http://accounts.youtube.com/",
     "https://accounts.youtube.com:8443/",
     "https://user:password@accounts.youtube.com/",
+    "https://workspace.google.com.evil.test/",
+    "http://workspace.google.com/",
+    "https://user:password@workspace.google.com/",
   ])
     assert.equal(allowedWebNavigation(url, origins), false);
 });

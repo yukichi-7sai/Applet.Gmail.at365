@@ -17,6 +17,8 @@
 
 ホストを`dev.bat run build`でビルドしてから、ルートの`start-dev.bat`を使います。`artifacts/gmail-dev`に隔離したAppDockを起動します。Gmailを開くコマンドから操作画面を表示できます。実利用のAppDockを更新・再起動する操作とは独立しています。
 
+Gmail開発profileはハードウェアアクセラレーションをオフにします。`prepare-dev.cjs`が既存の他設定を保持したまま`host.hardwareAcceleration: false`を保存し、次回起動からソフトウェア描画を使用します。各GUI/portable/認証fixtureもGPUオフです。起動中のGPU設定は変わらないため、変更後はテスト用AppDockを完全終了して起動し直してください。
+
 旧Webテストからログイン状態を引き継ぐ開発専用の操作:
 
 ```powershell

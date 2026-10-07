@@ -13,6 +13,7 @@ const executable = process.argv[2]
 const settings = hostRequire(
   "./out/main/shared/settings-schema",
 ).createDefaultSettings();
+settings.host.hardwareAcceleration = false;
 settings.extensions["at365.gmail"] = {
   enabled: false,
   settings: { notifications: false },
