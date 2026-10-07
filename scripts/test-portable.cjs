@@ -111,7 +111,7 @@ async function until(fn, message) {
         .querySelector("tbody")
         .insertAdjacentHTML(
           "afterbegin",
-          '<tr class="zA"><td class="yW"><span email="fixture@example.test" name="Portable sender">Portable sender</span></td><td><span class="bog" data-legacy-thread-id="portable-arrival">Portable arrival subject</span><span class="y2">private preview</span></td></tr>',
+          '<tr class="zA zE"><td class="yW"><span email="fixture@example.test" name="Portable sender">Portable sender</span></td><td><span class="bog" data-legacy-thread-id="portable-arrival">Portable arrival subject</span><span class="y2">private preview</span></td></tr>',
         ),
     );
     await until(

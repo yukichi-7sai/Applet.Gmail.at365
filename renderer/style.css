@@ -6,6 +6,19 @@
   --muted: #98a6b6;
   --accent: #9be2d2;
 }
+.read-state {
+  color: #9cabbc;
+  border-radius: 4px;
+  background: #ffffff08;
+  padding: 2px 6px;
+}
+.read-state.unread {
+  color: #a1e5d3;
+  background: #244139;
+}
+.initial-label {
+  color: #869aaa;
+}
 * {
   box-sizing: border-box;
 }

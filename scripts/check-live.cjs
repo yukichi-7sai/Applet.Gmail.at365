@@ -37,7 +37,7 @@ delete env.ELECTRON_RUN_AS_NODE;
     let data;
     while (Date.now() < deadline) {
       data = await ui.evaluate(() => window.webAccounts.snapshot());
-      if (data.accounts.some((a) => a.status === "受信トレイを監視中")) break;
+      if (data.accounts.some((a) => a.observation?.ready)) break;
       await new Promise((r) => setTimeout(r, 500));
     }
     const diagnostics = await app.evaluate(async ({ webContents }) => {
@@ -55,9 +55,7 @@ delete env.ELECTRON_RUN_AS_NODE;
       );
     });
     const result = {
-      loginRetained: data.accounts.some(
-        (a) => a.status === "受信トレイを監視中",
-      ),
+      loginRetained: data.accounts.some((a) => a.observation?.ready === true),
       accounts: data.accounts.map((a) => ({
         loading: a.loading,
         error: a.error,
@@ -68,6 +66,9 @@ delete env.ELECTRON_RUN_AS_NODE;
         subjectRows:
           a.observation?.details?.filter((d) => !!d.subject).length ?? 0,
         initialHistoryCount: a.data?.arrivals?.length ?? 0,
+        unreadRows: a.observation?.unread?.length ?? 0,
+        readRows: a.observation?.read?.length ?? 0,
+        pendingUnread: a.data?.pending ?? 0,
       })),
       hardwareAcceleration: await app.evaluate(({ app }) =>
         app.isHardwareAccelerationEnabled(),

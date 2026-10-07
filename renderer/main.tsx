@@ -328,7 +328,7 @@ function App() {
                   <span>{arrivals.length} 件の履歴</span>
                 </div>
                 <p className="list-note">
-                  件数は検知したスレッドの更新数です。履歴は起動中だけ、各アカウントの最大50件を保持します。
+                  件数は未読の新着スレッド数です。起動時の未読も含みます。履歴は各アカウントの最大50件を保持します。
                 </p>
                 {arrivals.length === 0 ? (
                   <div className="empty history-empty">
@@ -339,7 +339,7 @@ function App() {
                     <p>
                       受信トレイを表示している間の新着が、ここに並びます。
                       <br />
-                      初回表示や再読み込み時の既存メールは追加しません。
+                      起動時に確認できた未読も新着として取り込みます。
                     </p>
                     <button onClick={() => setPage("inbox")}>
                       受信トレイを開く
@@ -350,14 +350,33 @@ function App() {
                     {arrivals.map((mail) => (
                       <li
                         key={mail.account.id + ":" + mail.key}
-                        className={mail.acknowledged ? "acknowledged" : "new"}
+                        className={
+                          !mail.acknowledged && mail.unread === true
+                            ? "new"
+                            : "acknowledged"
+                        }
                       >
                         <div className="arrival-meta">
                           <span className="account-tag">
                             {mail.account.name}
                           </span>
-                          {!mail.acknowledged && (
+                          {!mail.acknowledged && mail.unread === true && (
                             <span className="new-label">新着</span>
+                          )}
+                          <span
+                            className={
+                              "read-state " +
+                              (mail.unread === true ? "unread" : "")
+                            }
+                          >
+                            {mail.unread === true
+                              ? "未読"
+                              : mail.unread === false
+                                ? "既読"
+                                : "状態未確認"}
+                          </span>
+                          {mail.initial && (
+                            <span className="initial-label">起動時の未読</span>
                           )}
                           <time
                             dateTime={new Date(mail.detectedAt).toISOString()}

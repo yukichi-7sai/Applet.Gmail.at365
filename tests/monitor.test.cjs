@@ -7,14 +7,19 @@ const o = (keys, extra = {}) => ({
   document: "page-one",
   revision: 1,
   keys,
+  unread: extra.unread ?? [],
+  read: keys.filter((key) => !(extra.unread ?? []).includes(key)),
   ...extra,
 });
 test("initial load is a baseline; prepended arrival is sticky and deduplicated", () => {
   const m = new InboxMonitor();
   assert.equal(m.observe(o(["a", "b", "c"])), false);
-  assert.equal(m.observe(o(["new", "a", "b", "c"])), true);
+  assert.equal(m.observe(o(["new", "a", "b", "c"], { unread: ["new"] })), true);
   assert.equal(m.attention, true);
-  assert.equal(m.observe(o(["new", "a", "b", "c"])), false);
+  assert.equal(
+    m.observe(o(["new", "a", "b", "c"], { unread: ["new"] })),
+    false,
+  );
   m.acknowledge();
   assert.equal(m.attention, false);
   assert.equal(m.observe(o(["new", "a", "b", "c"])), false);
@@ -54,7 +59,7 @@ test("temporary DOM mutation settling preserves baseline; invalid snapshots cann
   const m = new InboxMonitor();
   m.observe(o(["a", "b"]));
   m.observe(o([], { ready: false, reason: "settling" }));
-  assert.equal(m.observe(o(["new", "a", "b"])), true);
+  assert.equal(m.observe(o(["new", "a", "b"], { unread: ["new"] })), true);
   for (const raw of [
     null,
     {},
@@ -72,13 +77,13 @@ test("seen rows cannot be notified again after reordering; state is isolated per
   b.observe(o(["one", "two"]));
   a.observe(o(["two", "one"]));
   assert.equal(a.observe(o(["one", "two"])), false);
-  assert.equal(b.observe(o(["new", "one", "two"])), true);
+  assert.equal(b.observe(o(["new", "one", "two"], { unread: ["new"] })), true);
   assert.equal(a.attention, false);
 });
 test("a confirmed empty inbox establishes a baseline for its first mail", () => {
   const m = new InboxMonitor();
   assert.equal(m.observe(o([])), false);
-  assert.equal(m.observe(o(["first"])), true);
+  assert.equal(m.observe(o(["first"], { unread: ["first"] })), true);
 });
 
 test("arrival batches count distinct thread updates, carry metadata, and preserve history on acknowledge", () => {
@@ -115,10 +120,13 @@ test("arrival batches count distinct thread updates, carry metadata, and preserv
 test("metadata is optional, validated and session history remains bounded", () => {
   const m = new InboxMonitor();
   m.observe(o(["a"]));
+  const collected = [];
   for (let n = 0; n < 65; n++) {
-    const keys = ["n" + n, ...m.history.slice(0, 2).map((a) => a.key), "a"];
+    collected.unshift("n" + n);
+    const keys = [...collected, "a"];
     m.observe(
       o(keys, {
+        unread: [...collected],
         details: [
           { key: keys[0], sender: "送".repeat(120), subject: "題".repeat(200) },
         ],
@@ -143,6 +151,69 @@ test("metadata is optional, validated and session history remains bounded", () =
   fallback.observe(o(["old"]));
   fallback.observe(o(["new", "old"]));
   assert.equal(fallback.history[0].subject, "");
+});
+
+test("startup imports only unread threads; reload does not re-notify but monitor restart imports unread", () => {
+  const m = new InboxMonitor();
+  assert.equal(m.observe(o(["a", "b", "read"], { unread: ["a", "b"] })), true);
+  assert.equal(m.pending, 2);
+  assert.equal(m.history.length, 2);
+  assert.ok(m.history.every((entry) => entry.initial && entry.unread === true));
+  m.observe(null);
+  assert.equal(
+    m.observe(
+      o(["a", "b", "read"], { unread: ["a", "b"], document: "reloaded" }),
+    ),
+    false,
+  );
+  assert.equal(m.pending, 2);
+  m.acknowledge();
+  assert.equal(m.observe(o(["a", "b", "read"], { unread: ["a", "b"] })), false);
+  assert.equal(m.pending, 0);
+  m.reset();
+  assert.equal(m.observe(o(["a", "b", "read"], { unread: ["a", "b"] })), true);
+  assert.equal(m.pending, 2);
+});
+
+test("reading reduces badge without losing history; marking unread restores count without a notification", () => {
+  const m = new InboxMonitor();
+  m.observe(o(["thread~one"], { unread: ["thread~one"] }));
+  assert.equal(m.observe(o(["thread~one"])), false);
+  assert.equal(m.pending, 0);
+  assert.equal(m.attention, false);
+  assert.equal(m.history[0].unread, false);
+  assert.equal(m.observe(o(["thread~one"], { unread: ["thread~one"] })), false);
+  assert.equal(m.pending, 1);
+  assert.equal(m.observe(o(["thread~two"], { unread: ["thread~two"] })), true);
+  assert.equal(m.pending, 1, "multiple arrivals in the same thread count once");
+  assert.equal(m.history.length, 2);
+  m.observe(o(["thread~two"]));
+  assert.equal(m.pending, 0);
+  assert.ok(m.history.every((entry) => entry.unread === false));
+});
+
+test("read and unknown arrivals cannot notify or increment unread badge; missing rows are unknown", () => {
+  const m = new InboxMonitor();
+  m.observe(o(["old"]));
+  assert.equal(m.observe(o(["read-new", "old"])), false);
+  assert.equal(m.pending, 0);
+  assert.equal(m.history[0].unread, false);
+  assert.equal(
+    m.observe(o(["unknown", "read-new", "old"], { read: [], unread: [] })),
+    false,
+  );
+  assert.equal(m.history[0].unread, null);
+  m.observe(
+    o(["unread", "unknown", "read-new", "old"], { unread: ["unread"] }),
+  );
+  assert.equal(m.pending, 1);
+  m.observe(o(["old"]));
+  assert.equal(m.pending, 0);
+  assert.equal(m.history[0].unread, null);
+  assert.equal(
+    parseObservation(o(["a"], { unread: ["a"], read: ["a"] })),
+    null,
+  );
 });
 test("changed last-message ID in unread thread detects reply; marking unread and read sent-replies do not", () => {
   const m = new InboxMonitor();

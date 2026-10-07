@@ -1,6 +1,6 @@
 (() => {
   // Isolated world 1001: no Electron/Node APIs, no IPC, and no authentication code.
-  const slot = "__at365GmailObserverV3";
+  const slot = "__at365GmailObserverV4";
   let state = globalThis[slot];
   if (!state) {
     state = {
@@ -68,6 +68,7 @@
   );
   const keys = [];
   const unread = [];
+  const read = [];
   const details = [];
   let detailBytes = 0;
   const text = (value, limit) =>
@@ -97,6 +98,7 @@
       if (keys.includes(key)) continue;
       keys.push(key);
       if (row.classList.contains("zE")) unread.push(key);
+      else if (row.classList.contains("yO")) read.push(key);
       const senders = [
         ...row.querySelectorAll(".yW [email], .yW [name], span[email]"),
       ].filter(visible);
@@ -128,6 +130,7 @@
     ready: keys.length > 0 || empty,
     keys,
     unread,
+    read,
     details,
     reason: keys.length || empty ? undefined : "no-row-ids",
   };
@@ -139,6 +142,8 @@
     const key = keys.pop();
     const u = unread.indexOf(key);
     if (u >= 0) unread.splice(u, 1);
+    const r = read.indexOf(key);
+    if (r >= 0) read.splice(r, 1);
     const d = details.findIndex((detail) => detail.key === key);
     if (d >= 0) details.splice(d, 1);
   }

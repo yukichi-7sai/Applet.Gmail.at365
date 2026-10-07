@@ -39,6 +39,12 @@ Gmail開発profileはハードウェアアクセラレーションをオフに�
 
 ## 構成と設計
 
+0.2.1の未読/既読は受信トレイ行の`zE`/`yO`で判定し、どちらもない場合は未確認とします。`unread`と`read`は互いに重ならない識別子一覧で、本文を開いて状態を調べたり、既読に変更したりはしません。Gmailの[会話表示](https://support.google.com/mail/answer/5900?co=GENIE.Platform%3DDesktop&hl=ja)では行がスレッドに対応するため、個別メッセージの未読数とは区別します。
+
+`InboxMonitor`は初回の未読を新着に取り込みます。`Arrival`に`unread: boolean | null`と`initial`を持たせ、同じスレッドの履歴を現在の行状態へ同期します。未クリアの新着を履歴の50件上限とは別のMapで管理し、確認できた未読スレッドだけをpendingへ計上します。新しい返信でも同じスレッドは1件。見えなくなった行は未確認、画面が非受信トレイの間は直前の件数を維持します。Mapも4096件を目安に非未読の古い項目を整理します。
+
+通知は`notificationArrivals`の未読だけに限定します。既読/未読の変更だけで通知し直さず、クリア済みのスレッドは新しい返信等を検知するまで件数へ戻しません。同一起動中の再読込やフォルダー復帰は既存未読を再通知せず、監視OFF/ON・Applet再起動は初回取り込みをやり直します。確認範囲は受信トレイ先頭ページの可視行のみです。
+
 Google認証の許可先には`https://accounts.youtube.com`も含めます。[GoogleChromeLabsのログイン用例外一覧](https://github.com/GoogleChromeLabs/managed-guest-testing)に掲載され、[GoogleのYouTubeヘルプ](https://support.google.com/youtube/answer/69961?hl=ja)にもサービス間のGoogleログイン連携が説明されています。任意のYouTubeページやワイルドカードには広げず、GmailのDOM観測先は`https://mail.google.com`のままです。manifestの変更はホスト起動時の再読込が必要です。
 
 - `src/index.ts`: Node Applet。2秒ごとに画面観測結果を取得し、アカウント別判定・通知・パネル・トレイを更新。ページを再読み込みしてポーリングしません。

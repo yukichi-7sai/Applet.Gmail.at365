@@ -90,17 +90,17 @@ async function tick() {
         await context.notifications.show(
           "Gmail — " + a.name,
           context.settings.get("notificationDetails", false)
-            ? monitor.lastArrivals
+            ? monitor.notificationArrivals
                 .slice(0, 3)
                 .map(
                   (mail) =>
                     `${mail.sender || "送信元を取得できません"}：${mail.subject || "件名を取得できません"}`,
                 )
                 .join("\n") +
-                (monitor.lastArrivals.length > 3
-                  ? `\nほか ${monitor.lastArrivals.length - 3} 件`
+                (monitor.notificationArrivals.length > 3
+                  ? `\nほか ${monitor.notificationArrivals.length - 3} 件`
                   : "")
-            : `新着を ${monitor.lastArrivals.length} 件検知しました。`,
+            : `未読の新着を ${monitor.notificationArrivals.length} 件検知しました。`,
           { command: ID + ".open" },
         );
       if (!active) return;

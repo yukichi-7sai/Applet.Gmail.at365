@@ -53,7 +53,7 @@ async function remote(id, action) {
     { id, action },
   );
 }
-async function launch() {
+async function launch(startupUnread = false) {
   app = await electron.launch({
     executablePath: executable,
     args: process.argv[2]
@@ -63,13 +63,13 @@ async function launch() {
   });
   dock = await app.firstWindow();
   await dock.waitForFunction(() => !!window.dock);
-  await app.evaluate(({ app, session }) => {
+  await app.evaluate(({ app }, startupUnread) => {
     const html =
       '<!doctype html><html><body style="font:18px sans-serif;background:#fff;color:#222"><h1>Gmail offline fixture</h1><main role="main"><table><tbody>' +
       ["a", "b", "c"]
         .map(
           (id) =>
-            `<tr class="zA"><td><span data-legacy-thread-id="${id}">${id}: fixture message</span></td></tr>`,
+            `<tr class="zA ${startupUnread && id === "a" ? "zE" : "yO"}"><td><span data-legacy-thread-id="${id}">${id}: fixture message</span></td></tr>`,
         )
         .join("") +
       '</tbody></table><input aria-label="mail input"></main></body></html>';
@@ -85,7 +85,7 @@ async function launch() {
     };
     app.on("session-created", install);
     // Existing persistent sessions are created only by the default UI at this point.
-  });
+  }, startupUnread);
   await dock.evaluate(() => window.dock.toggleExtension("at365.gmail", true));
   await until(
     async () =>
@@ -102,8 +102,10 @@ async function launch() {
   await ui.getByRole("button", { name: "＋ アカウントを追加" }).waitFor();
   await until(
     async () =>
-      (await snapshot()).accounts.every(
-        (a) => a.status === "受信トレイを監視中",
+      (await snapshot()).accounts.every((a) =>
+        startupUnread
+          ? a.data?.pending === 1
+          : a.status === "受信トレイを監視中",
       ),
     "observer baseline",
   );
@@ -158,7 +160,7 @@ async function launch() {
     );
     await remote(
       first,
-      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA"><td class="yW"><span email="team@example.test" name="開発チーム">開発チーム</span></td><td><span class="bog" data-legacy-thread-id="while-history">一覧を開いたまま届いたメール</span></td></tr>`)',
+      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA zE"><td class="yW"><span email="team@example.test" name="開発チーム">開発チーム</span></td><td><span class="bog" data-legacy-thread-id="while-history">一覧を開いたまま届いたメール</span></td></tr>`)',
     );
     await ui
       .getByRole("heading", { name: "一覧を開いたまま届いたメール" })
@@ -222,7 +224,7 @@ async function launch() {
     );
     await remote(
       first,
-      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA"><td data-legacy-thread-id="while-away">fixture</td></tr>`); location.hash = "#inbox"',
+      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA zE"><td data-legacy-thread-id="while-away">fixture</td></tr>`); location.hash = "#inbox"',
     );
     await until(
       async () =>
@@ -294,11 +296,11 @@ async function launch() {
     await ui.getByRole("heading", { name: "新着を待っています" }).waitFor();
     await remote(
       first,
-      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA"><td data-legacy-thread-id="first-filter">first-account filtered arrival</td></tr>`)',
+      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA zE"><td data-legacy-thread-id="first-filter">first-account filtered arrival</td></tr>`)',
     );
     await remote(
       second,
-      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA"><td><span class="bog" data-legacy-thread-id="second-filter">別アカウントの新着</span></td></tr>`)',
+      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA zE"><td><span class="bog" data-legacy-thread-id="second-filter">別アカウントの新着</span></td></tr>`)',
     );
     await until(
       async () =>
@@ -359,7 +361,7 @@ async function launch() {
     await ui.evaluate(() => window.close());
     await remote(
       second,
-      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA"><td data-legacy-thread-id="background-new">background arrival</td></tr>`)',
+      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA zE"><td data-legacy-thread-id="background-new">background arrival</td></tr>`)',
     );
     await until(
       async () =>
@@ -380,7 +382,7 @@ async function launch() {
       path.join(profile, "settings.json"),
       JSON.stringify(saved),
     );
-    await launch();
+    await launch(true);
     assert.equal((await snapshot()).accounts[0].name, "Fixture account 1");
     const persisted = await app.evaluate(async ({ webContents }, id) => {
       const wc = webContents
@@ -390,10 +392,35 @@ async function launch() {
         ?.value;
     }, first);
     assert.equal(persisted, "account-one");
-    assert.ok((await snapshot()).accounts.every((a) => !a.attention));
     assert.ok(
-      (await snapshot()).accounts.every((a) => a.data.arrivals.length === 0),
+      (await snapshot()).accounts.every(
+        (a) => a.attention && a.data.pending === 1,
+      ),
     );
+    assert.ok(
+      (await snapshot()).accounts.every(
+        (a) =>
+          a.data.arrivals.length === 1 &&
+          a.data.arrivals[0].initial &&
+          a.data.arrivals[0].unread,
+      ),
+    );
+    await ui.getByRole("button", { name: /^新着一覧/ }).click();
+    await remote(first, 'document.querySelector("tr").className = "zA yO"');
+    await until(
+      async () => (await snapshot()).accounts[0].data.pending === 0,
+      "startup unread becomes read",
+    );
+    assert.equal((await snapshot()).accounts[0].data.arrivals[0].unread, false);
+    assert.equal((await snapshot()).accounts[1].data.pending, 1);
+    await ui.getByText("既読", { exact: true }).waitFor();
+    await ui.screenshot({ path: path.join(profile, "read-state.png") });
+    await remote(first, 'document.querySelector("tr").className = "zA zE"');
+    await until(
+      async () => (await snapshot()).accounts[0].data.pending === 1,
+      "unread state returns",
+    );
+    assert.equal((await snapshot()).accounts[0].data.arrivals.length, 1);
     // The UI bounds are trusted-local only, clipped to the client area, and invalid input rejects.
     await assert.rejects(
       ui.evaluate(() =>
@@ -449,6 +476,8 @@ async function launch() {
             "arrival counts, acknowledgement and transient history",
             "account settings UI",
             "multi-account history filters and scoped clearing",
+            "startup imports unread only",
+            "read state updates counts and history without duplicate arrivals",
             "read-state ignored",
             "per-account isolation",
             "background monitoring",

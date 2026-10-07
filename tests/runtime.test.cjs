@@ -55,12 +55,14 @@ test("runtime reports arrivals and keeps notification metadata opt-in; settings 
       },
     },
   };
-  const o = (keys) => ({
+  const o = (keys, unread = []) => ({
     ready: true,
     context: "inbox",
     document: "one",
     revision: 1,
     keys,
+    unread,
+    read: keys.filter((key) => !unread.includes(key)),
     details: keys.map((key) => ({
       key,
       sender: "Fixture sender",
@@ -70,10 +72,10 @@ test("runtime reports arrivals and keeps notification metadata opt-in; settings 
   observation = o(["old"]);
   try {
     await activate(context);
-    observation = o(["new", "old"]);
+    observation = o(["new", "old"], ["new"]);
     await tick();
     assert.equal(notifications.length, 1);
-    assert.equal(notifications[0].body, "新着を 1 件検知しました。");
+    assert.equal(notifications[0].body, "未読の新着を 1 件検知しました。");
     assert.equal(
       reports.at(-1).data.arrivals[0].subject,
       "Private fixture subject",
@@ -81,7 +83,7 @@ test("runtime reports arrivals and keeps notification metadata opt-in; settings 
     values.notificationDetails = true;
     await onChanged();
     assert.equal(reports.at(-1).data.pending, 1);
-    observation = o(["newer", "new", "old"]);
+    observation = o(["newer", "new", "old"], ["newer", "new"]);
     await tick();
     assert.match(
       notifications.at(-1).body,
@@ -95,9 +97,18 @@ test("runtime reports arrivals and keeps notification metadata opt-in; settings 
     await onChanged();
     assert.equal(reports.at(-1).data.arrivals.length, 0);
     values.monitoring = true;
-    observation = o(["while-off", "newer", "new", "old"]);
+    observation = o(
+      ["while-off", "newer", "new", "old"],
+      ["while-off", "newer"],
+    );
     await onChanged();
-    assert.equal(notifications.length, 2);
+    assert.equal(notifications.length, 3);
+    assert.equal(reports.at(-1).data.pending, 2);
+    observation = o(["while-off", "newer", "new", "old"]);
+    await tick();
+    assert.equal(reports.at(-1).data.pending, 0);
+    assert.equal(reports.at(-1).attention, false);
+    assert.equal(notifications.length, 3);
   } finally {
     await deactivate();
   }
