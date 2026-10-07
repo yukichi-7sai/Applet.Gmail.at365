@@ -1,5 +1,13 @@
 # 検証記録
 
+## 2026-10-07: 0.1.1 Google認証のYouTube経由に対応
+
+- 実利用環境で利用者自身がログインした際、`https://accounts.youtube.com`へのトップレベル転送を未対応として遮断したとの報告。Gmail Appletの`webAccounts.origins`にこの認証originが未宣言だったことを確認し、正確な1 originだけ追加。observeOriginはGmailのまま。ホストコード/EXEの変更は不要。
+- `publish.bat -Test`成功。型検査・Vite build・既存新着判定7件＋認証先境界1件、8/8成功。YouTubeの通常サイト、類似ドメイン、HTTP、資格情報付きURL、非標準ポートは引き続き拒否。
+- 発行版AppDock 0.12.0で`test-auth-redirect.cjs`成功。HTTPSのオフライン302転送をGoogle→accounts.youtube.com→Google→Gmailとして再現し、受信トレイの監視状態へ復帰。類似originの遮断、認証queryの非公開、再読み込み後のエラー解除も確認。結果: `artifacts/auth-redirect-1791364938676/result.json`（ok=true）。実Googleの認証リダイレクトを自動再現したものではない。
+- 実利用先`A:\00.ESSENTIAL\00.MainTools\AppDock.at365\extensions\Applet.Gmail.at365\extension.json`を独自変更なしと照合したうえで原子的に更新し、発行元とのSHA256一致を確認。ホストsettings.jsonの前後SHA256一致。更新はmanifestだけで、ホストEXE・Appletコード・ログイン領域には触れていない。開発用の2配置先もmanifestを更新。
+- 稼働中のホストは旧manifestを保持するため、利用者にAppDockの完全終了→起動し直しと、Gmailで「受信トレイ」からログインを続ける操作を案内。修正後の実ログイン完了は利用者確認待ち。
+
 ## 2026-10-07: 0.1.0 / AppDock 0.12.0
 
 - TypeScript/Node AppletとReact操作画面を新しい`Applet.Gmail.at365`リポジトリに実装。旧`Applet.GmailChecker.at365`の追跡ファイルは変更せず、Web表示テストのUIを引き継いだ。

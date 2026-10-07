@@ -3,7 +3,7 @@
   "id": "at365.gmail",
   "name": "Applet.Gmail.at365",
   "displayName": "Gmail",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "minimumHostVersion": "0.12.0",
   "runtime": "node",
   "entry": "index.js",
@@ -19,7 +19,7 @@
   ],
   "webAccounts": {
     "url": "https://mail.google.com/mail/u/0/#inbox",
-    "origins": ["https://mail.google.com", "https://accounts.google.com", "https://myaccount.google.com"],
+    "origins": ["https://mail.google.com", "https://accounts.google.com", "https://accounts.youtube.com", "https://myaccount.google.com"],
     "observeOrigin": "https://mail.google.com",
     "ui": "web/index.html",
     "observer": "web/observer.js"

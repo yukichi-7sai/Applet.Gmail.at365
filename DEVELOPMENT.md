@@ -30,11 +30,14 @@
 ..\AppDock.at365\.tools\node\24.21.0\node.exe scripts\check-live.cjs
 ..\AppDock.at365\.tools\node\24.21.0\node.exe scripts\test-gui.cjs ..\AppDock.at365\publish\win-unpacked\AppDock.at365.exe
 ..\AppDock.at365\.tools\node\24.21.0\node.exe scripts\test-portable.cjs
+..\AppDock.at365\.tools\node\24.21.0\node.exe scripts\test-auth-redirect.cjs ..\AppDock.at365\publish\win-unpacked\AppDock.at365.exe
 ```
 
 `test-gui.cjs`は新しい隔離profileとHTTPSのオフラインfixtureだけを使います。`check-live.cjs`は明示的に開発用Gmailへ接続し、既存ログインの再利用・実DOMの識別子対応を確認して終了します。メール本文・件名・Cookie値は診断出力しません。実メールの到着確認には、利用者自身が送った開発用メールでの操作確認を別途行います。
 
 ## 構成と設計
+
+Google認証の許可先には`https://accounts.youtube.com`も含めます。[GoogleChromeLabsのログイン用例外一覧](https://github.com/GoogleChromeLabs/managed-guest-testing)に掲載され、[GoogleのYouTubeヘルプ](https://support.google.com/youtube/answer/69961?hl=ja)にもサービス間のGoogleログイン連携が説明されています。任意のYouTubeページやワイルドカードには広げず、GmailのDOM観測先は`https://mail.google.com`のままです。manifestの変更はホスト起動時の再読込が必要です。
 
 - `src/index.ts`: Node Applet。2秒ごとに画面観測結果を取得し、アカウント別判定・通知・パネル・トレイを更新。ページを再読み込みしてポーリングしません。
 - `web/observer.js`: Gmail専用の読取処理。MutationObserverでDOMの世代を更新し、800ms静まった状態を読む。Gmailの受信トレイ先頭ページだけで、スレッド/最終メッセージIDと未読行フラグを取得。本文・送信元・件名は取得しない。
