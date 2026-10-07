@@ -48,7 +48,7 @@ delete env.ELECTRON_RUN_AS_NODE;
             nativeVisible: view.getVisible(),
             bounds: view.getBounds(),
             ...(await view.webContents.executeJavaScript(
-              "({hidden:document.hidden, visibility:document.visibilityState, focus:document.hasFocus(), size:[innerWidth,innerHeight], framesSeen, intersecting, visibilityEvents})",
+              "({hidden:document.hidden, visibility:document.visibilityState, focus:document.hasFocus(), size:[innerWidth,innerHeight], framesSeen, intersecting, visibilityEvents, paints:performance.getEntriesByType('paint').map(e=>e.name)})",
             )),
           })),
         ),
@@ -102,6 +102,58 @@ delete env.ELECTRON_RUN_AS_NODE;
       );
     });
     await sample("third attached to never-shown background window");
+    await app.evaluate(() => probeViews[2].webContents.focus());
+    await sample("third native WebContents focused without showing parent");
+    await app.evaluate(({ screen }) => {
+      const right = Math.max(
+        ...screen.getAllDisplays().map((d) => d.bounds.x + d.bounds.width),
+      );
+      neverShownWindow.setBounds({
+        x: right + 100,
+        y: 0,
+        width: 800,
+        height: 600,
+      });
+      neverShownWindow.setFocusable(false);
+      neverShownWindow.setSkipTaskbar(true);
+      neverShownWindow.showInactive();
+    });
+    await sample("third parent shown inactive outside displays");
+    await app.evaluate(() => neverShownWindow.hide());
+    await sample("third parent hidden after first native show");
+    await app.evaluate(async ({ BrowserWindow, WebContentsView, screen }) => {
+      const right = Math.max(
+        ...screen.getAllDisplays().map((d) => d.bounds.x + d.bounds.width),
+      );
+      globalThis.transparentWindow = new BrowserWindow({
+        x: right + 100,
+        y: 0,
+        width: 800,
+        height: 600,
+        opacity: 0,
+        frame: false,
+        show: false,
+        focusable: false,
+        skipTaskbar: true,
+        webPreferences: { backgroundThrottling: false },
+      });
+      const view = new WebContentsView({
+        webPreferences: {
+          backgroundThrottling: false,
+          sandbox: true,
+          nodeIntegration: false,
+        },
+      });
+      view.setBounds({ x: 0, y: 0, width: 700, height: 400 });
+      transparentWindow.contentView.addChildView(view);
+      probeViews.push(view);
+      await view.webContents.loadURL(
+        'data:text/html,<main>Transparent startup fixture</main><script>window.framesSeen=0;window.intersecting=null;window.visibilityEvents=[];function frame(){framesSeen++;requestAnimationFrame(frame)};frame();new IntersectionObserver(e=>intersecting=e[0].isIntersecting).observe(document.querySelector("main"));</script>',
+      );
+    });
+    await sample("fourth attached to invisible never-shown window");
+    await app.evaluate(() => transparentWindow.showInactive());
+    await sample("fourth parent shown inactive at opacity zero");
     fs.writeFileSync(
       path.join(profile, "result.json"),
       JSON.stringify(steps, null, 2),

@@ -25,6 +25,46 @@ delete env.ELECTRON_RUN_AS_NODE;
       if (gmail?.state === "running") break;
       await new Promise((r) => setTimeout(r, 100));
     }
+    let startupBeforeUi = null;
+    if (process.argv.includes("--startup-paint")) {
+      while (Date.now() < deadline) {
+        startupBeforeUi = await app.evaluate(
+          async ({ webContents, BrowserWindow, screen }) => {
+            const pages = webContents
+              .getAllWebContents()
+              .filter((w) => w.getURL().startsWith("https://mail.google.com"));
+            const helper = BrowserWindow.getAllWindows().find((w) =>
+              w.contentView.children.some((v) => pages.includes(v.webContents)),
+            );
+            return {
+              userUiOpened: BrowserWindow.getAllWindows().some((w) =>
+                w.webContents.getURL().includes("/web/index.html"),
+              ),
+              helperFocused: helper?.isFocused() ?? false,
+              helperOpacity: helper?.getOpacity(),
+              pages: await Promise.all(
+                pages.map(async (w) => ({
+                  loading: w.isLoading(),
+                  ...(await w.executeJavaScriptInIsolatedWorld(1002, [
+                    {
+                      code: '({painted:performance.getEntriesByType("paint").some(e=>e.name==="first-contentful-paint"),rows:document.querySelectorAll("tr.zA").length})',
+                    },
+                  ])),
+                })),
+              ),
+            };
+          },
+        );
+        if (
+          startupBeforeUi.pages.length &&
+          startupBeforeUi.pages.every(
+            (p) => !p.loading && p.painted && p.rows > 0,
+          )
+        )
+          break;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
     await dock.evaluate(() => window.dock.executeCommand("at365.gmail.open"));
     let ui;
     while (Date.now() < deadline) {
@@ -115,6 +155,7 @@ delete env.ELECTRON_RUN_AS_NODE;
     const result = {
       loginRetained: data.accounts.some((a) => a.observation?.ready === true),
       readItemCheck,
+      startupBeforeUi,
       accounts: data.accounts.map((a) => ({
         loading: a.loading,
         error: a.error,

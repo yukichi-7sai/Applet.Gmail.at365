@@ -50,6 +50,10 @@ function App() {
     return window.webAccounts.onChanged(() => void load());
   }, []);
   const account = snapshot?.accounts.find((a) => a.id === snapshot.selected);
+  useEffect(() => {
+    document.documentElement.dataset.theme =
+      snapshot?.dark === false ? "light" : "dark";
+  }, [snapshot?.dark]);
   useEffect(() => setName(account?.name ?? ""), [account?.id, account?.name]);
   useEffect(() => setNotice(""), [account?.id]);
   useEffect(
@@ -157,7 +161,24 @@ function App() {
       <header>
         <div className="brand">
           <span className="mark" aria-hidden="true">
-            M
+            <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+              <rect
+                x="3"
+                y="5"
+                width="18"
+                height="14"
+                rx="3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <path
+                d="m4 7 8 6 8-6"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </span>
           <div>
             <strong>Gmail</strong>
@@ -184,7 +205,7 @@ function App() {
             アカウント設定
           </button>
         </nav>
-        <span className="header-note">Gmail Web</span>
+        <span className="header-note">{accounts.length} アカウント</span>
       </header>
       <aside>
         <div className="section">
@@ -628,7 +649,8 @@ function App() {
                   <div className="sound-file">
                     <span title={account?.sound.file || "標準のビープ音"}>
                       {account?.sound.file
-                        ? account.sound.file.split(/[\\/]/).at(-1)
+                        ? account.sound.name ||
+                          account.sound.file.split(/[\\/]/).at(-1)
                         : "標準のビープ音"}
                     </span>
                     <button
@@ -666,8 +688,13 @@ function App() {
                     </button>
                   </div>
                   <p className="hint">
-                    設定はこのアカウントへ保存します。試聴は通知音がOFFでも再生できます。WAVファイルは移動せずに保持してください。
+                    通知音はAppDockの保存領域へコピーします。元のWAVを移動・削除しても利用できます。試聴は通知音がOFFでも再生できます。
                   </p>
+                  {account?.soundError && (
+                    <p className="error-banner" role="alert">
+                      {account.soundError}
+                    </p>
+                  )}
                 </section>
                 <section className="settings-card">
                   <h2>監視と通知</h2>

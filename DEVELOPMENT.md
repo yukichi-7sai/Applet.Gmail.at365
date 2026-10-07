@@ -39,6 +39,12 @@ Gmail開発profileはハードウェアアクセラレーションをオフに�
 
 ## 構成と設計
 
+0.4.0はAppDock 0.15.0のsnapshot.darkでローカルReact画面のテーマを同期し、ライト/ダークの共通色をCSS変数で定義します。Gmail自身のDOM/CSSは書き換えません。アカウントsoundのnameは元ファイル名、fileはホスト管理のコピー先です。ホストは選択時にWAVを検証・コピーし、旧外部パスもstartで移行します。コピーに失敗した枠はsoundErrorを表示し、元設定を保持して実効的な音をOFFにします。再選択で復旧できます。
+
+初回未表示のページではrAFが動いてもfirst-contentful-paintが発生しないことを追加診断しました。0.15.0の背景Windowは透明・全ディスプレイの外・非フォーカス・タスクバー非表示でshowInactiveし、初回のネイティブ描画を成立させます。操作Windowの非表示/最小化中もViewを背景へ移します。probe-visibilityはpaintの有無も比較し、test-backgroundのfixtureは初回描画を確認してから自身のfetch更新を開始します。これにより未表示時と非表示中のreload後の更新を検証します。実Gmailの初回描画は`check-live.cjs --startup-paint`で、操作UIを開く前に読み取りだけで確認できます。
+
+test-ui-featuresはテーマの即時同期、設定のバージョンページと手動更新確認（通信はfixture）、通知音コピー後の元ファイル削除・再起動・旧設定のONを維持した移行も確認します。
+
 0.3.0はAppDock 0.14.0の`openItem`、`cycle`、アカウント別sound、ウィンドウ状態保存を使います。`web/open-item.js`は明示的なローカルUI操作でのみ実行する関数式です。observerと同じisolated world 1001にJSON文字列のkeyを渡し、可視受信トレイ行をスレッドIDで探して件名部分をクリックします。Gmailの非公開URLを組み立てず、見つからない場合はfalseを返してUIが受信トレイへ案内します。対象が他フォルダー/本文中なら一度受信トレイへ移り、観測がreadyになるまで最大8秒待って再試行します。メールを開くとGmail自身が既読にする場合があります。クリア操作とは独立しています。
 
 通知音はホストのアカウントsoundをreadで受け取り、`notificationArrivals`がある場合だけ`audio.play`を呼びます。デスクトップ通知の設定とは別条件で、toastには常にsilent:trueを指定します。WAV選択にはfile-dialog、設定/試聴/再生にはaudio capabilityが必要です。ホストの既存queueSoundを再利用し、UIやGmailページへ任意のファイル読み取り/Host APIを公開しません。初期値はenabled:false/file:""。soundはaccounts.json、位置・サイズはWindowStateStoreでwindow-state.jsonへ保存します。

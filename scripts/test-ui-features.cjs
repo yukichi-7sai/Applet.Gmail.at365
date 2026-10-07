@@ -54,7 +54,7 @@ delete env.ELECTRON_RUN_AS_NODE;
 const executable = process.argv[2]
   ? path.resolve(process.argv[2])
   : hostRequire("electron");
-let app, dock, ui;
+let app, dock, ui, importedSound;
 async function until(fn, message) {
   const deadline = Date.now() + 20000;
   while (Date.now() < deadline) {
@@ -186,9 +186,103 @@ async function close() {
 (async () => {
   try {
     await launch();
+    await app.evaluate(({ net }) => {
+      globalThis.updateChecks = 0;
+      globalThis.updateMode = "available";
+      net.fetch = async () => {
+        updateChecks++;
+        if (updateMode === "unpublished")
+          return new Response("", { status: 404 });
+        if (updateMode === "error") return new Response("", { status: 503 });
+        return new Response(
+          JSON.stringify({
+            tag_name: updateMode === "available" ? "v9.0.0" : "v0.1.0",
+            draft: false,
+            prerelease: false,
+          }),
+        );
+      };
+    });
+    await dock.getByRole("button", { name: "設定", exact: true }).click();
+    await dock
+      .getByRole("button", { name: "バージョン情報・更新", exact: true })
+      .click();
+    await dock
+      .getByRole("heading", { name: "AppDock.at365 v0.15.0" })
+      .waitFor();
+    assert.equal(await app.evaluate(() => updateChecks), 0);
+    const hostAbout = dock.locator(".about-host");
+    await hostAbout
+      .getByRole("button", { name: "更新を確認", exact: true })
+      .click();
+    await hostAbout
+      .getByRole("status")
+      .filter({ hasText: "v9.0.0 が公開されています" })
+      .waitFor();
+    await hostAbout.getByRole("button", { name: "リリースを開く" }).waitFor();
+    await dock.screenshot({ path: path.join(profile, "about-dark.png") });
+    for (const [mode, message] of [
+      ["current", "最新版です。"],
+      ["unpublished", "公開リリースが見つかりません。"],
+      ["error", "GitHub HTTP 503"],
+    ]) {
+      await app.evaluate((_electron, mode) => {
+        updateMode = mode;
+      }, mode);
+      await hostAbout
+        .getByRole("button", { name: "更新を確認", exact: true })
+        .click();
+      await hostAbout.getByText(message, { exact: mode !== "error" }).waitFor();
+    }
+    await dock
+      .locator(".about-applets")
+      .getByRole("button", { name: "更新を確認", exact: true })
+      .click();
+    await dock
+      .locator(".about-applets")
+      .getByText("更新確認先が設定されていません。", { exact: true })
+      .waitFor();
+    const theme = async (value) => {
+      await dock.evaluate(async (value) => {
+        const { settings } = await window.dock.snapshot();
+        settings.value.host.theme = value;
+        await window.dock.saveSettings(settings.value, settings.revision);
+      }, value);
+      const expected = await app.evaluate(({ nativeTheme }) =>
+        nativeTheme.shouldUseDarkColors ? "dark" : "light",
+      );
+      await ui.waitForFunction(
+        (expected) => document.documentElement.dataset.theme === expected,
+        expected,
+      );
+      await dock.waitForFunction(
+        (expected) => document.documentElement.dataset.theme === expected,
+        expected,
+      );
+      assert.equal(
+        await ui.evaluate(
+          () => getComputedStyle(document.body).backgroundColor,
+        ),
+        await dock.evaluate(
+          () => getComputedStyle(document.documentElement).backgroundColor,
+        ),
+      );
+    };
+    await theme("system");
+    await theme("light");
+    assert.equal(
+      await hostAbout
+        .getByRole("alert")
+        .textContent()
+        .then((text) => text.includes("dock:checkUpdates")),
+      false,
+    );
+    await dock.screenshot({ path: path.join(profile, "about-light.png") });
     assert.ok((await snapshot()).accounts.every((a) => !a.sound.enabled));
     await ui.getByRole("button", { name: /^新着一覧/ }).click();
     assert.equal(await ui.locator(".arrival-list li").count(), 4);
+    await ui.screenshot({ path: path.join(profile, "arrivals-light.png") });
+    await theme("dark");
     await ui.getByLabel("新着履歴を検索").fill("ＡＬＩＣＥ");
     await until(
       async () => (await ui.locator(".arrival-list li").count()) === 2,
@@ -289,15 +383,24 @@ async function close() {
     await ui.getByLabel("このアカウントの通知音を鳴らす").check();
     await ui.getByRole("button", { name: "WAVを選択", exact: true }).click();
     await until(
-      async () => (await snapshot()).accounts[0].sound.file === soundFile,
+      async () =>
+        (await snapshot()).accounts[0].sound.name === "silent.wav" &&
+        (await snapshot()).accounts[0].sound.file !== soundFile,
       "pick WAV",
     );
+    importedSound = (await snapshot()).accounts[0].sound.file;
+    assert.ok(importedSound.startsWith(path.join(webRoot, "sounds")));
+    assert.deepEqual(fs.readFileSync(importedSound), wave);
+    fs.unlinkSync(soundFile);
     await ui.getByRole("button", { name: "試聴", exact: true }).click();
     await until(
       () => app.evaluate(() => fixtureSounds.length === 1),
       "preview sound",
     );
     await ui.screenshot({ path: path.join(profile, "sound-wide.png") });
+    await theme("light");
+    await ui.screenshot({ path: path.join(profile, "sound-light.png") });
+    await theme("dark");
     // Both host and Applet desktop notifications are OFF. Only account one's sound is ON.
     for (const a of accounts)
       await remote(
@@ -375,6 +478,16 @@ async function close() {
     );
     assert.deepEqual(saved.bounds, normalGeometry);
     assert.equal(saved.maximized, true);
+    const legacyFile = path.join(profile, "legacy.wav");
+    fs.writeFileSync(legacyFile, wave);
+    const savedAccounts = JSON.parse(
+      fs.readFileSync(path.join(webRoot, "accounts.json"), "utf8"),
+    );
+    savedAccounts.accounts[1].sound = { enabled: true, file: legacyFile };
+    fs.writeFileSync(
+      path.join(webRoot, "accounts.json"),
+      JSON.stringify(savedAccounts),
+    );
     // Restart reuses only the fixture profile; accounts and sound must survive.
     await launch();
     const restored = await app.evaluate(({ BrowserWindow }) => {
@@ -388,9 +501,17 @@ async function close() {
     const restoredAccounts = (await snapshot()).accounts;
     assert.deepEqual(restoredAccounts[0].sound, {
       enabled: true,
-      file: soundFile,
+      file: importedSound,
+      name: "silent.wav",
     });
-    assert.deepEqual(restoredAccounts[1].sound, { enabled: false, file: "" });
+    assert.deepEqual(restoredAccounts[1].sound, {
+      enabled: true,
+      file: importedSound,
+      name: "legacy.wav",
+    });
+    assert.deepEqual(fs.readFileSync(importedSound), wave);
+    assert.ok(fs.existsSync(legacyFile));
+    fs.unlinkSync(legacyFile);
     await ui
       .getByRole("button", { name: "アカウント設定", exact: true })
       .click();
@@ -421,6 +542,10 @@ async function close() {
             "WAV preview/reset/OFF",
             "sound persistence",
             "normal geometry and maximized restart",
+            "host theme dark/light/system and live synchronization",
+            "settings version page and manual update states",
+            "managed sound survives deleting original WAV",
+            "legacy sound migration preserves ON and deduplicates copies",
           ],
           geometry: normalGeometry,
         },

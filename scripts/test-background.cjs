@@ -56,7 +56,7 @@ const remoteStates = () =>
         .map(async (wc) => ({
           id: pathId(wc.session.storagePath),
           ...(await wc.executeJavaScript(
-            '({ frames:window.framesSeen, applied:window.applied, hidden:document.hidden, size:[innerWidth,innerHeight], unread:document.querySelector("tr").classList.contains("zE") })',
+            '({ frames:window.framesSeen, started:window.paintStarted, paints:performance.getEntriesByType("paint").map(e=>e.name), applied:window.applied, hidden:document.hidden, size:[innerWidth,innerHeight], unread:document.querySelector("tr").classList.contains("zE") })',
           )),
         })),
     ).catch((e) => {
@@ -91,7 +91,7 @@ const remoteStates = () =>
             });
           // The fixture's own rendering, not the test, applies remote updates in rAF.
           return new Response(
-            '<!doctype html><title>Background Gmail fixture</title><main role="main"><table><tbody><tr class="zA zE"><td class="yW"><span email="fixture@example.test">Fixture sender</span></td><td><span class="bog" data-legacy-thread-id="thread-a">Background subject</span></td></tr></tbody></table></main><script>window.framesSeen=0;window.applied=0;function frame(){framesSeen++;requestAnimationFrame(frame)};frame();let busy=false;setInterval(async()=>{if(busy)return;busy=true;try{const value=await(await fetch("/fixture/state",{cache:"no-store"})).json();if(value.revision!==window.applied)requestAnimationFrame(()=>{document.querySelector("tr").className="zA "+(value.unread?"zE":"yO");window.applied=value.revision;});}finally{busy=false;}},250);</script>',
+            '<!doctype html><title>Background Gmail fixture</title><main role="main"><table><tbody><tr class="zA zE"><td class="yW"><span email="fixture@example.test">Fixture sender</span></td><td><span class="bog" data-legacy-thread-id="thread-a">Background subject</span></td></tr></tbody></table></main><script>window.framesSeen=0;window.applied=0;function frame(){framesSeen++;requestAnimationFrame(frame)};frame();window.paintStarted=false;let busy=false;new PerformanceObserver(entries=>{if(window.paintStarted||!entries.getEntries().some(e=>e.name==="first-contentful-paint"))return;window.paintStarted=true;setInterval(async()=>{if(busy)return;busy=true;try{const value=await(await fetch("/fixture/state",{cache:"no-store"})).json();if(value.revision!==window.applied)requestAnimationFrame(()=>{document.querySelector("tr").className="zA "+(value.unread?"zE":"yO");window.applied=value.revision;});}finally{busy=false;}},250);}).observe({type:"paint",buffered:true});</script>',
             { headers: { "content-type": "text/html; charset=utf-8" } },
           );
         });
@@ -109,13 +109,47 @@ const remoteStates = () =>
       const states = await remoteStates();
       return (
         states.length === 2 &&
-        states.every((s) => s.frames > 1 && s.size[0] > 500 && !s.hidden)
+        states.every(
+          (s) => s.started && s.frames > 1 && s.size[0] > 500 && !s.hidden,
+        )
       );
     }, "background page layout and rendering before UI opens");
     const beforeOpen = await remoteStates();
+    const helper = await app.evaluate(({ BrowserWindow, screen }) => {
+      const w = BrowserWindow.getAllWindows().find((w) =>
+        w.contentView.children.some((v) =>
+          v.webContents?.getURL().startsWith("https://mail.google.com"),
+        ),
+      );
+      return {
+        opacity: w.getOpacity(),
+        focused: w.isFocused(),
+        visible: w.isVisible(),
+        outsideDisplays: screen
+          .getAllDisplays()
+          .every((d) => w.getBounds().x >= d.bounds.x + d.bounds.width),
+      };
+    });
+    assert.deepEqual(helper, {
+      opacity: 0,
+      focused: false,
+      visible: true,
+      outsideDisplays: true,
+    });
+    const helperId = await app.evaluate(
+      ({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows().find((w) => w.getOpacity() === 0).id,
+    );
     assert.equal(beforeOpen.length, 2);
     assert.ok(
-      beforeOpen.every((s) => s.frames > 1 && s.size[0] > 500 && !s.hidden),
+      beforeOpen.every(
+        (s) =>
+          s.started &&
+          s.paints.includes("first-contentful-paint") &&
+          s.frames > 1 &&
+          s.size[0] > 500 &&
+          !s.hidden,
+      ),
     );
     await dock.evaluate(() => window.dock.executeCommand("at365.gmail.open"));
     await until(async () => {
@@ -177,6 +211,20 @@ const remoteStates = () =>
       return { destroyed: w.isDestroyed(), visible: w.isVisible() };
     });
     assert.deepEqual(hidden, { destroyed: false, visible: false });
+    await app.evaluate(({ webContents }) => {
+      for (const w of webContents.getAllWebContents()) {
+        if (w.getURL().startsWith("https://mail.google.com")) w.reload();
+      }
+    });
+    await until(async () => {
+      const states = await remoteStates();
+      return (
+        states.length === 2 &&
+        states.every(
+          (s) => s.started && s.paints.includes("first-contentful-paint"),
+        )
+      );
+    }, "first paint after reloading while UI is hidden");
     await change(accounts[0].id, 2, true);
     await change(accounts[1].id, 4, true);
     await until(
@@ -217,18 +265,17 @@ const remoteStates = () =>
       0,
     );
     const backgroundWindows = await app.evaluate(
-      ({ BrowserWindow }) =>
-        BrowserWindow.getAllWindows().filter(
-          (w) =>
-            w.webContents.getLastWebPreferences().partition ===
-            "web-account-background-at365.gmail",
-        ).length,
+      ({ BrowserWindow }, helperId) =>
+        BrowserWindow.getAllWindows().filter((w) => w.id === helperId).length,
+      helperId,
     );
     assert.equal(backgroundWindows, 0);
     const result = {
       ok: true,
       checks: [
         "rAF updates before UI opens",
+        "first contentful paint before UI opens and after hidden reload",
+        "transparent offscreen helper never takes focus",
         "remote read/unread update in never-selected account",
         "selection remains unchanged",
         "history and tray-hidden updates",
@@ -236,6 +283,7 @@ const remoteStates = () =>
         "stop destroys background window",
       ],
       beforeOpen,
+      helper,
       after,
     };
     fs.writeFileSync(
