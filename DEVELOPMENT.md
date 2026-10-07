@@ -39,6 +39,12 @@ Gmail開発profileはハードウェアアクセラレーションをオフに�
 
 ## 構成と設計
 
+0.5.0はAppDock 0.16.0のmove/setMonitoringを使います。settingsの全体monitoringとreadの各枠monitoringをANDで判定し、monitoringResetsを受けたmonitorはONでもresetします。個別OFFの即時UIクリアと古いreportの抑制はホスト、検知・音・通知の抑制はAppletです。順番と個別監視はUUID/ログイン領域を保持してaccounts.jsonへ保存します。Reactの監視スイッチは即時表示し、保存失敗時に戻します。表示名はEnter保存と未保存変更の取消に対応します。
+
+observer V6はGmailヘッダーのSignOutOptions/Googleアカウントリンク内の画像だけを読み取ります。送信者アイコンやアカウント選択メニューは対象外です。画像URLはlh3〜lh6.googleusercontent.comとlh3〜lh6.google.comに限定し、ホストのavatarOriginsで再検証します。URLは観測データ、取得後の64px画像はホストのメモリー内に置き、Node readへ画像バイトを送信しません。メール本文/プレビューは従来どおり対象外です。
+
+`scripts/test-accounts.cjs [発行版EXE]`は既存形式の2枠を使い、画像表示/画像消失・更新、設定中だけの追加、上下操作と選択保持/循環順、個別OFF中も他方が監視すること、再開時の未読取り込み、入力の保持とEnter保存、再起動後の順番/監視/表示名、900×640のライト/ダーク、10枠上限、正常停止を検証します。
+
 0.4.3のobserverは、実Gmailの`table.TB tr.TD > td.TC`の明示的な空状態も認識します。空の受信トレイでもready:trueを返すため、keepActiveの初期化と最後の削除の反映を継続できます。`.Dj .ts`の開始/終了/総数が1/総数/総数で、可視行と全識別子が一致する場合だけcomplete:trueとします。切り詰め・ID不明行はcomplete/rowsCompleteをfalseにし、全件を見た根拠にしません。
 
 履歴にはcontextを付け、pendingContextsは50件の履歴上限とは独立して保持します。同じcontextのcompleteな一覧にないスレッドを履歴/件数から除去します。部分一覧では、同じ文書/contextで識別済みの可視行がすべて取得でき、共有行の順序が保たれた場合だけ、残っている下側の行より前の消失を除去します。境界から押し出された行、カテゴリ変更、未知の空状態、ID不明行は消失と断定しません。削除とアーカイブの区別はしません。復元だけで同じメールを再通知しません。

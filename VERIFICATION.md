@@ -1,5 +1,15 @@
 # 検証記録
 
+## 2026-10-08: 0.5.0 アカウント管理・アバター・個別監視
+
+- AppDock 0.16.0とGmail 0.5.0。アカウントを上下に並べ替え、一覧と循環切替に保存順を使用。UUID・選択・ログイン領域・通知音を維持する。追加ボタンはアカウント設定中だけ表示し、追加後はログイン用の受信トレイへ移る。表示名はEnter保存・未保存変更の取消に対応。
+- 個別監視は旧データも既定ON。OFFでは対象の履歴・件数・attentionを消去し、検知/通知/音を抑制する。他のアカウントとログイン/音の設定は維持。再開時は確認できる未読を取り込む。全体監視とのAND、read間のOFF→ONの基準reset、OFF後の古いreportの抑制も確認。
+- ヘッダーのGoogleアカウント画像を取得し64px PNGとしてローカルUIだけへ渡す。実Gmailでlh3.googleusercontent.comとlh3.google.comを確認。後者は転送を含み、Session.fetchのmanual redirectは取消エラーだった。ClientRequestのredirectイベントで転送先を再検証する方式へ修正。Cookieなし、宣言済みの厳密なHTTPS origin、最大3転送、合計5秒、入力/出力64KBで制限し、削除・停止で取消。取得失敗時は先頭文字へ代替し、本文・プレビューは対象外。
+- 最終型検査/Vite、Gmail回帰20/20、ホスト回帰90/90成功。最終win-unpacked EXEの`artifacts/accounts-1791404902870/result.json`で、転送を含む2画像・消失/差替え、設定中だけの追加、並べ替え/選択保持/循環順、個別OFF中の他方の新着、再開取り込み、入力保持/Enter、再起動後の設定保持、10枠上限、900×640のライト/ダーク、正常停止を確認。両テーマの画像を目視確認。
+- 最終app.asarの通常Electron背景試験: `artifacts/native-background-1791404906576/result.json`。最終単一EXEと未改変Applet: `artifacts/portable-1791404908006/result.json`（本体0.16.0、exitCode0、停止/再開/正常終了）。既存検索・キー・通知音・テーマ等は中間配布版の`artifacts/ui-features-1791404353562/result.json`と`artifacts/gui-1791404385769/result.json`でも成功。portable試験の古い固定ホスト版はpackage.jsonの版との照合へ修正した。
+- 実GmailはPlaywrightなしの通常起動・主プロセスInspectorの読取のみ。保存済み2アカウントの両画像を、UI未表示のまま取得できた（`artifacts/account-avatar-live.json`、avatars=[true,true]、monitoring=[true,true]、pending=[0,0]、GPUオフ）。メール送信・削除・既読変更・本文/認証値の出力なし。実新着を使う個別OFF/ON、長期常駐・スリープ復帰は未確認。
+- 最終本体EXE100,447,550 bytes、SHA256 `55860971131436395A82378679A93AC6CF766A5B90F44CFC9936A14E3C423BB7`。.NETはframework-dependentクリーン発行、Runtime混入なし。開発用publish/extensionsへ全資産をSHA256照合して配置し、保存認証/GPUオフの通常テストアプリを起動。README/DEVELOPMENT/ホストAPI文書を更新、ローカルリンク88件・Prettier・git diff check成功。実利用先deploy・外部pushなし。
+
 ## 2026-10-08: 0.4.3 削除した新着の除去・見つからないメールの待ち時間
 
 - 実Gmailの空状態は`table.TB tr.TD > td.TC`の「新着メールはありません。」だった。旧observerの`.aRv`だけではready:false/no-row-idsとなり、最後の削除後にpendingが残り、空状態で起動したアカウントのkeepActive初期化も始まらなかった。履歴も消失を未確認へ変えるだけで保持していた。UIはopenItem:false後に受信トレイを再ロードし、観測を最大8秒待っていた。

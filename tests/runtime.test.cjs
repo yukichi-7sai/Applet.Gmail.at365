@@ -2,6 +2,101 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { activate, deactivate } = require("../out/index");
 
+test("per-account monitoring clears only its history and attention, suppresses sound, and reimports unread on resume", async () => {
+  let tick,
+    resets = [];
+  const accounts = ["one", "two"].map((id) => ({
+    id,
+    name: id,
+    error: "",
+    monitoring: id === "two",
+    sound: { enabled: true, file: id + ".wav" },
+    observation: {
+      ready: true,
+      context: "inbox",
+      document: id,
+      revision: 1,
+      keys: ["unread"],
+      unread: ["unread"],
+      read: [],
+    },
+  }));
+  const reports = new Map(),
+    notices = [],
+    sounds = [],
+    attention = [];
+  const c = {
+    commands: { register() {} },
+    ui: { async showPanel() {} },
+    tray: {
+      add() {},
+      async attention(value) {
+        attention.push(value);
+      },
+    },
+    notifications: {
+      async show(title) {
+        notices.push(title);
+      },
+    },
+    audio: {
+      async play(file) {
+        sounds.push(file);
+      },
+    },
+    settings: { get: (key, fallback) => fallback, onChanged() {} },
+    scheduler: {
+      every(ms, handler) {
+        tick = handler;
+        return () => {};
+      },
+    },
+    log: {
+      async error(message) {
+        throw Error(message);
+      },
+    },
+    webAccounts: {
+      async start() {},
+      async open() {},
+      async read() {
+        const data = { accounts, acknowledged: [], monitoringResets: resets };
+        resets = [];
+        return data;
+      },
+      async report(id, status, value, data) {
+        reports.set(id, { status, attention: value, data });
+      },
+    },
+  };
+  try {
+    await activate(c);
+    assert.equal(reports.get("one").data.pending, 0);
+    assert.equal(reports.get("two").data.pending, 1);
+    assert.deepEqual(sounds, ["two.wav"]);
+    assert.equal(notices.length, 1);
+    accounts[1].monitoring = false;
+    resets = ["two"];
+    await tick();
+    assert.equal(reports.get("two").data.arrivals.length, 0);
+    assert.equal(attention.at(-1), false);
+    accounts[0].monitoring = true;
+    resets = ["one"];
+    await tick();
+    assert.equal(reports.get("one").data.pending, 1);
+    assert.equal(reports.get("two").data.pending, 0);
+    assert.deepEqual(sounds, ["two.wav", "one.wav"]);
+    await tick();
+    assert.equal(notices.length, 2);
+    // Even an OFF/ON entirely between ticks must establish a new baseline.
+    resets = ["one"];
+    await tick();
+    assert.equal(notices.length, 3);
+  } finally {
+    await deactivate();
+  }
+});
+
 test("account sounds are independent of desktop notifications and cycle commands keep stable IDs", async () => {
   let tick;
   const sounds = [],

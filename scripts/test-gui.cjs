@@ -99,7 +99,7 @@ async function launch(startupUnread = false) {
     ui = app.windows().find((p) => p.url().includes("/web/index.html"));
     return !!ui;
   }, "local Gmail UI window");
-  await ui.getByRole("button", { name: "＋ アカウントを追加" }).waitFor();
+  await ui.waitForFunction(() => !!window.webAccounts);
   await until(
     async () =>
       (await snapshot()).accounts.every((a) =>

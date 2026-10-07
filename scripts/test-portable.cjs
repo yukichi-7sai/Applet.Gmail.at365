@@ -77,7 +77,7 @@ async function until(fn, message) {
     await dock.waitForFunction(() => !!window.dock);
     assert.equal(
       (await dock.evaluate(() => window.dock.snapshot())).version,
-      "0.15.2",
+      hostRequire("./package.json").version,
     );
     await dock.evaluate(() => window.dock.executeCommand("at365.gmail.open"));
     await until(async () => {

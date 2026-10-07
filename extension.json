@@ -3,8 +3,8 @@
   "id": "at365.gmail",
   "name": "Applet.Gmail.at365",
   "displayName": "Gmail",
-  "version": "0.4.3",
-  "minimumHostVersion": "0.15.2",
+  "version": "0.5.0",
+  "minimumHostVersion": "0.16.0",
   "runtime": "node",
   "entry": "index.js",
   "description": "アカウントごとのGmail Web画面と新着の検知",
@@ -21,6 +21,7 @@
     { "key": "notificationDetails", "title": "通知に送信元と件名を表示", "type": "boolean", "default": false }
   ],
   "webAccounts": {
+    "avatarOrigins": ["https://lh3.googleusercontent.com", "https://lh4.googleusercontent.com", "https://lh5.googleusercontent.com", "https://lh6.googleusercontent.com", "https://lh3.google.com", "https://lh4.google.com", "https://lh5.google.com", "https://lh6.google.com"],
     "keepActive": true,
     "url": "https://mail.google.com/mail/u/0/#inbox",
     "origins": ["https://mail.google.com", "https://accounts.google.com", "https://accounts.google.co.jp", "https://accounts.youtube.com", "https://myaccount.google.com", "https://workspace.google.com"],

@@ -13,7 +13,7 @@ declare global {
   }
 }
 type Page = "inbox" | "arrivals" | "settings";
-type MailData = { pending: number; arrivals: Arrival[] };
+type MailData = { pending: number; arrivals: Arrival[]; monitoring?: boolean };
 const mailData = (a?: WebAccount): MailData => {
   const data = a?.data as MailData | null;
   return data && Array.isArray(data.arrivals)
@@ -27,6 +27,25 @@ const time = (value: number) =>
     hour: "2-digit",
     minute: "2-digit",
   }).format(value);
+function Avatar({
+  account,
+  large = false,
+}: {
+  account?: WebAccount;
+  large?: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [account?.avatar]);
+  return (
+    <span className={"avatar" + (large ? " large" : "")} aria-hidden="true">
+      {account?.avatar && !failed ? (
+        <img src={account.avatar} alt="" onError={() => setFailed(true)} />
+      ) : (
+        Array.from(account?.name.trim() || "G")[0].toLocaleUpperCase("ja-JP")
+      )}
+    </span>
+  );
+}
 function App() {
   const [snapshot, setSnapshot] = useState<WebAccountSnapshot>();
   const [page, setPage] = useState<Page>("inbox");
@@ -35,6 +54,7 @@ function App() {
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [monitoringEnabled, setMonitoringEnabled] = useState(true);
   const [error, setError] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -56,6 +76,10 @@ function App() {
   }, [snapshot?.dark]);
   useEffect(() => setName(account?.name ?? ""), [account?.id, account?.name]);
   useEffect(() => setNotice(""), [account?.id]);
+  useEffect(
+    () => setMonitoringEnabled(account?.monitoring !== false),
+    [account?.id, account?.monitoring],
+  );
   useEffect(
     () => setSoundEnabled(account?.sound.enabled ?? false),
     [account?.id, account?.sound.enabled],
@@ -248,7 +272,7 @@ function App() {
           </button>
         </div>
         <nav className="accounts" aria-label="アカウント一覧">
-          {accounts.map((a, i) => (
+          {accounts.map((a) => (
             <button
               className={"account " + (a.id === account?.id ? "selected" : "")}
               key={a.id}
@@ -256,17 +280,17 @@ function App() {
               disabled={busy}
               onClick={() => void run(() => window.webAccounts.select(a.id))}
             >
-              <span className="avatar" aria-hidden="true">
-                {i + 1}
-              </span>
+              <Avatar account={a} />
               <span className="account-text">
                 <strong>{a.name}</strong>
                 <small title={a.error || a.status}>
-                  {a.error
-                    ? "読み込みエラー"
-                    : a.loading
-                      ? "読み込み中…"
-                      : a.status}
+                  {a.monitoring === false
+                    ? "監視OFF"
+                    : a.error
+                      ? "読み込みエラー"
+                      : a.loading
+                        ? "読み込み中…"
+                        : a.status}
                 </small>
               </span>
               {a.attention && (
@@ -280,18 +304,23 @@ function App() {
             </button>
           ))}
         </nav>
-        <button
-          className="add"
-          disabled={busy || accounts.length >= 10}
-          onClick={() =>
-            void run(async () => {
-              await window.webAccounts.add();
-              setPage("inbox");
-            })
-          }
-        >
-          ＋ アカウントを追加
-        </button>
+        {page === "settings" && (
+          <button
+            className="add"
+            disabled={busy || accounts.length >= 10}
+            onClick={() =>
+              void run(async () => {
+                await window.webAccounts.add();
+                setPage("inbox");
+              })
+            }
+          >
+            ＋ アカウントを追加
+          </button>
+        )}
+        {page === "settings" && accounts.length >= 10 && (
+          <p className="account-limit">10アカウントまで追加できます。</p>
+        )}
         <div className="sidebar-bottom">
           <span className="privacy-mark" aria-hidden="true">
             ◈
@@ -383,7 +412,7 @@ function App() {
               <p>
                 {page === "arrivals"
                   ? "受信トレイの更新から検知した新着を、まとめて確認できます。"
-                  : "表示名と保存済みのログイン領域を管理します。"}
+                  : "順番・表示名・新着の監視と通知音を管理します。"}
               </p>
             </div>
             {page === "arrivals" && (
@@ -570,18 +599,82 @@ function App() {
               </>
             ) : (
               <>
+                <section className="settings-card account-order">
+                  <h2>アカウントの順番</h2>
+                  <p>
+                    上下のボタンで並べ替えます。一覧と切替キーに同じ順番が反映されます。
+                  </p>
+                  <ol className="order-list">
+                    {accounts.map((a, i) => (
+                      <li
+                        key={a.id}
+                        className={a.id === account?.id ? "current" : ""}
+                      >
+                        <button
+                          className="order-account"
+                          disabled={busy}
+                          aria-pressed={a.id === account?.id}
+                          onClick={() =>
+                            void run(() => window.webAccounts.select(a.id))
+                          }
+                        >
+                          <Avatar account={a} />
+                          <span>
+                            <strong>{a.name}</strong>
+                            <small>
+                              {a.monitoring === false ? "監視OFF" : "監視ON"}
+                            </small>
+                          </span>
+                        </button>
+                        <div className="order-actions">
+                          <button
+                            disabled={busy || i === 0}
+                            aria-label={a.name + "を上へ移動"}
+                            title="上へ移動"
+                            onClick={() =>
+                              void run(() => window.webAccounts.move(a.id, -1))
+                            }
+                          >
+                            ↑
+                          </button>
+                          <button
+                            disabled={busy || i === accounts.length - 1}
+                            aria-label={a.name + "を下へ移動"}
+                            title="下へ移動"
+                            onClick={() =>
+                              void run(() => window.webAccounts.move(a.id, 1))
+                            }
+                          >
+                            ↓
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
                 <section className="settings-card">
                   <div className="card-heading">
-                    <span className="avatar large" aria-hidden="true">
-                      {accounts.findIndex((a) => a.id === account?.id) + 1}
-                    </span>
+                    <Avatar account={account} large />
                     <div>
                       <h2>{account?.name}</h2>
                       <p>{account?.error || account?.status}</p>
                     </div>
                   </div>
                   <label htmlFor="account-name">このアカウントの表示名</label>
-                  <div className="name-edit">
+                  <form
+                    className="name-edit"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (
+                        account &&
+                        name.trim() &&
+                        name.trim() !== account.name
+                      )
+                        void run(() =>
+                          window.webAccounts.rename(account.id, name),
+                        );
+                    }}
+                  >
                     <input
                       id="account-name"
                       value={name}
@@ -589,6 +682,7 @@ function App() {
                       onChange={(e) => setName(e.target.value)}
                     />
                     <button
+                      type="submit"
                       className="primary"
                       disabled={
                         busy ||
@@ -596,15 +690,19 @@ function App() {
                         !name.trim() ||
                         name.trim() === account.name
                       }
-                      onClick={() =>
-                        void run(() =>
-                          window.webAccounts.rename(account!.id, name),
-                        )
-                      }
                     >
                       名前を保存
                     </button>
-                  </div>
+                    {account && name !== account.name && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setName(account.name)}
+                      >
+                        元に戻す
+                      </button>
+                    )}
+                  </form>
                   <p className="hint">
                     一覧や通知に表示する名前です。Googleアカウントの名前は変更しません。
                   </p>
@@ -632,6 +730,57 @@ function App() {
                       最後の枠は残します。ログアウトはGmail画面から操作してください。
                     </p>
                   )}
+                </section>
+                <section className="settings-card">
+                  <h2>このアカウントの新着監視</h2>
+                  <label className="sound-toggle">
+                    <input
+                      type="checkbox"
+                      aria-label="このアカウントの新着を監視する"
+                      disabled={busy || !account}
+                      checked={monitoringEnabled}
+                      onChange={(e) => {
+                        const enabled = e.currentTarget.checked;
+                        setMonitoringEnabled(enabled);
+                        void run(() =>
+                          window.webAccounts
+                            .setMonitoring(account!.id, enabled)
+                            .catch((error) => {
+                              setMonitoringEnabled(
+                                account!.monitoring !== false,
+                              );
+                              throw error;
+                            }),
+                        );
+                      }}
+                    />
+                    このアカウントの新着を監視する
+                    <span className="monitor-pill">
+                      {account?.monitoring === false ? "OFF" : "ON"}
+                    </span>
+                  </label>
+                  <p>
+                    OFFにすると、このアカウントの新着履歴・件数を消去し、通知と音を止めます。ログイン状態は保持し、Gmailは引き続き操作できます。ONへ戻すと、確認できる未読を新着として取り込み直します。
+                  </p>
+                  {account?.monitoring !== false &&
+                    mailData(account).monitoring === false && (
+                      <p className="monitor-note" role="status">
+                        AppDockの「設定 →
+                        Gmail」で全体の新着監視がOFFになっています。
+                      </p>
+                    )}
+                  <button
+                    className="inbox-setting"
+                    disabled={busy || !account}
+                    onClick={() =>
+                      void run(async () => {
+                        await window.webAccounts.navigate("inbox");
+                        setPage("inbox");
+                      })
+                    }
+                  >
+                    このアカウントの受信トレイを開く →
+                  </button>
                 </section>
                 <section className="settings-card">
                   <h2>このアカウントの通知音</h2>

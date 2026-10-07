@@ -4,6 +4,7 @@ interface Account {
   name: string;
   observation: unknown;
   error: string;
+  monitoring?: boolean;
   sound?: { enabled: boolean; file: string };
 }
 interface Context {
@@ -14,7 +15,11 @@ interface Context {
     start(): Promise<unknown>;
     open(): Promise<unknown>;
     cycle(direction: 1 | -1): Promise<unknown>;
-    read(): Promise<{ accounts: Account[]; acknowledged: string[] }>;
+    read(): Promise<{
+      accounts: Account[];
+      acknowledged: string[];
+      monitoringResets?: string[];
+    }>;
     report(
       id: string,
       status: string,
@@ -56,7 +61,11 @@ async function panel(accounts: Account[]) {
       "GmailのWeb画面をアカウントごとに表示し、受信トレイの更新を監視します。",
     facts: accounts.map((a) => ({
       label: a.name,
-      value: a.error || monitors.get(a.id)?.status || "ログインを待っています",
+      value: !context.settings.get("monitoring", true)
+        ? "全体の新着監視はOFFです"
+        : a.monitoring === false
+          ? "このアカウントの監視はOFFです"
+          : a.error || monitors.get(a.id)?.status || "ログインを待っています",
     })),
     actions: [
       { title: "Gmailを開く", command: ID + ".open" },
@@ -85,7 +94,8 @@ async function tick() {
         monitors.set(a.id, monitor);
       }
       if (data.acknowledged.includes(a.id)) monitor.acknowledge();
-      if (!enabled) monitor.reset();
+      if (data.monitoringResets?.includes(a.id)) monitor.reset();
+      if (!enabled || a.monitoring === false) monitor.reset();
       else {
         const arrived = monitor.observe(a.observation);
         if (arrived && a.sound?.enabled) {
@@ -118,9 +128,17 @@ async function tick() {
       if (!active) return;
       await context.webAccounts.report(
         a.id,
-        a.error || monitor.status,
+        !enabled
+          ? "全体の新着監視はOFFです"
+          : a.monitoring === false
+            ? "このアカウントの監視はOFFです"
+            : a.error || monitor.status,
         monitor.attention,
-        { pending: monitor.pending, arrivals: monitor.history },
+        {
+          pending: monitor.pending,
+          arrivals: monitor.history,
+          monitoring: enabled && a.monitoring !== false,
+        },
       );
     }
     if (!active) return;

@@ -1,6 +1,6 @@
 (() => {
   // Isolated world 1001: no Electron/Node APIs, no IPC, and no authentication code.
-  const slot = "__at365GmailObserverV5";
+  const slot = "__at365GmailObserverV6";
   let state = globalThis[slot];
   if (!state) {
     state = {
@@ -28,6 +28,8 @@
         "class",
         "email",
         "name",
+        "src",
+        "aria-label",
       ],
     });
     globalThis[slot] = state;
@@ -44,7 +46,24 @@
     .map((e) => e.getAttribute("aria-label") || e.textContent)
     .join("|");
   const context = route + "|" + tab;
+  // Read the signed-in account's header image only, never sender avatars or
+  // account chooser contents. Image retrieval is handled by the host.
+  const profileImage = [
+    ...document.querySelectorAll(
+      'a[href^="https://accounts.google.com/SignOutOptions"] img, a[aria-label^="Google アカウント"] img, a[aria-label^="Google Account"] img',
+    ),
+  ].find(visible);
+  let avatar = "";
+  try {
+    const url = new URL(profileImage?.currentSrc || profileImage?.src || "");
+    if (
+      url.protocol === "https:" &&
+      /^lh[3-6]\.(googleusercontent|google)\.com$/.test(url.hostname)
+    )
+      avatar = url.href.slice(0, 2048);
+  } catch {}
   const base = {
+    avatar,
     context,
     document: state.document,
     revision: state.revision,
@@ -62,7 +81,8 @@
     performance.now() - state.changed < 800
   )
     return { ...base, ready: false, reason: "settling" };
-  if (state.cache && state.cache.context === context) return state.cache;
+  if (state.cache && state.cache.context === context)
+    return { ...state.cache, avatar };
   const rows = [...main.querySelectorAll('tr.zA, [role="row"]')].filter(
     visible,
   );
