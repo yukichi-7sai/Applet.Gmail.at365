@@ -13,7 +13,12 @@ interface Context {
     start(): Promise<unknown>;
     open(): Promise<unknown>;
     read(): Promise<{ accounts: Account[]; acknowledged: string[] }>;
-    report(id: string, status: string, attention: boolean): Promise<unknown>;
+    report(
+      id: string,
+      status: string,
+      attention: boolean,
+      data?: unknown,
+    ): Promise<unknown>;
   };
   tray: {
     add(title: string, command: string): void;
@@ -84,7 +89,18 @@ async function tick() {
       )
         await context.notifications.show(
           "Gmail — " + a.name,
-          "新着メールがあります。",
+          context.settings.get("notificationDetails", false)
+            ? monitor.lastArrivals
+                .slice(0, 3)
+                .map(
+                  (mail) =>
+                    `${mail.sender || "送信元を取得できません"}：${mail.subject || "件名を取得できません"}`,
+                )
+                .join("\n") +
+                (monitor.lastArrivals.length > 3
+                  ? `\nほか ${monitor.lastArrivals.length - 3} 件`
+                  : "")
+            : `新着を ${monitor.lastArrivals.length} 件検知しました。`,
           { command: ID + ".open" },
         );
       if (!active) return;
@@ -92,6 +108,7 @@ async function tick() {
         a.id,
         a.error || monitor.status,
         monitor.attention,
+        { pending: monitor.pending, arrivals: monitor.history },
       );
     }
     if (!active) return;
@@ -120,7 +137,6 @@ export async function activate(c: Context) {
   await c.webAccounts.start();
   await tick();
   c.settings.onChanged(async () => {
-    for (const monitor of monitors.values()) monitor.reset();
     await tick();
   });
   cancel = c.scheduler.every(2000, tick);

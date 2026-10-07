@@ -80,6 +80,70 @@ test("a confirmed empty inbox establishes a baseline for its first mail", () => 
   assert.equal(m.observe(o([])), false);
   assert.equal(m.observe(o(["first"])), true);
 });
+
+test("arrival batches count distinct thread updates, carry metadata, and preserve history on acknowledge", () => {
+  const m = new InboxMonitor();
+  m.observe(o(["a~old", "b~same"]));
+  const next = o(["new~one", "a~reply", "b~same"], {
+    unread: ["new~one", "a~reply"],
+    details: [
+      { key: "new~one", sender: "ユキ", subject: "確認メール" },
+      { key: "a~reply", sender: "Alice", subject: "返信" },
+    ],
+  });
+  assert.equal(m.observe(next), true);
+  assert.equal(m.pending, 2);
+  assert.deepEqual(
+    m.lastArrivals.map((a) => a.sender),
+    ["ユキ", "Alice"],
+  );
+  assert.ok(
+    m.history.every(
+      (a) => Number.isSafeInteger(a.detectedAt) && !a.acknowledged,
+    ),
+  );
+  assert.equal(m.observe(next), false);
+  assert.equal(m.pending, 2);
+  m.acknowledge();
+  assert.equal(m.pending, 0);
+  assert.equal(m.history.length, 2);
+  assert.ok(m.history.every((a) => a.acknowledged));
+  m.reset();
+  assert.deepEqual(m.history, []);
+});
+
+test("metadata is optional, validated and session history remains bounded", () => {
+  const m = new InboxMonitor();
+  m.observe(o(["a"]));
+  for (let n = 0; n < 65; n++) {
+    const keys = ["n" + n, ...m.history.slice(0, 2).map((a) => a.key), "a"];
+    m.observe(
+      o(keys, {
+        details: [
+          { key: keys[0], sender: "送".repeat(120), subject: "題".repeat(200) },
+        ],
+      }),
+    );
+  }
+  assert.equal(m.pending, 65);
+  assert.ok(m.history.length <= 50 && m.history.length > 0);
+  assert.ok(
+    Buffer.byteLength(
+      JSON.stringify({ pending: m.pending, arrivals: m.history }),
+    ) <= 48000,
+  );
+  for (const details of [
+    [{ key: "other", sender: "A", subject: "S" }],
+    [{ key: "a", sender: "A", subject: "S".repeat(201) }],
+    [null],
+    "wrong",
+  ])
+    assert.equal(parseObservation(o(["a"], { details })), null);
+  const fallback = new InboxMonitor();
+  fallback.observe(o(["old"]));
+  fallback.observe(o(["new", "old"]));
+  assert.equal(fallback.history[0].subject, "");
+});
 test("changed last-message ID in unread thread detects reply; marking unread and read sent-replies do not", () => {
   const m = new InboxMonitor();
   m.observe(o(["thread~old", "other~same"], { unread: [] }));

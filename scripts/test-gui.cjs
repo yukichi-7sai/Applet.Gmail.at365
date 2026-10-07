@@ -121,7 +121,7 @@ async function launch() {
     );
     await remote(
       first,
-      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA"><td data-legacy-thread-id="new-one">new fixture arrival</td></tr>`)',
+      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA zE"><td class="yW"><span email="fixture@example.test" name="Fixture sender">Fixture sender</span></td><td><span class="bog" data-legacy-thread-id="new-one">新しい確認メール</span><span class="y2">PRIVATE BODY SNIPPET</span></td></tr>`)',
     );
     await until(
       async () => (await snapshot()).accounts[0].attention,
@@ -134,6 +134,55 @@ async function launch() {
       "新着メールがあります",
     );
     await ui.screenshot({ path: path.join(profile, "gmail.png") });
+    assert.equal((await snapshot()).accounts[0].data.pending, 1);
+    assert.equal(
+      (await snapshot()).accounts[0].data.arrivals[0].subject,
+      "新しい確認メール",
+    );
+    assert.ok(
+      !JSON.stringify((await snapshot()).accounts[0].observation).includes(
+        "PRIVATE BODY SNIPPET",
+      ),
+    );
+    await ui.getByRole("button", { name: /^新着一覧/ }).click();
+    await ui.getByRole("heading", { name: "新しい確認メール" }).waitFor();
+    await until(
+      () =>
+        app.evaluate(
+          ({ BrowserWindow }) =>
+            !BrowserWindow.getAllWindows()
+              .find((w) => w.webContents.getURL().includes("/web/index.html"))
+              .contentView.children[0].getVisible(),
+        ),
+      "history hides native Gmail view",
+    );
+    await remote(
+      first,
+      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA"><td class="yW"><span email="team@example.test" name="開発チーム">開発チーム</span></td><td><span class="bog" data-legacy-thread-id="while-history">一覧を開いたまま届いたメール</span></td></tr>`)',
+    );
+    await ui
+      .getByRole("heading", { name: "一覧を開いたまま届いたメール" })
+      .waitFor({ timeout: 15000 });
+    assert.equal((await snapshot()).accounts[0].data.pending, 2);
+    await ui.screenshot({ path: path.join(profile, "arrivals.png") });
+    await ui
+      .getByRole("button", { name: "新着表示をクリア", exact: true })
+      .click();
+    await until(
+      async () => (await snapshot()).accounts[0].data.pending === 0,
+      "history acknowledgement",
+    );
+    assert.equal(await ui.locator(".arrival-list li").count(), 2);
+    await ui.getByRole("button", { name: "受信トレイ", exact: true }).click();
+    await until(
+      () =>
+        app.evaluate(({ BrowserWindow }) =>
+          BrowserWindow.getAllWindows()
+            .find((w) => w.webContents.getURL().includes("/web/index.html"))
+            .contentView.children[0].getVisible(),
+        ),
+      "return shows native Gmail view",
+    );
     await ui.evaluate((id) => window.webAccounts.acknowledge(id), first);
     await until(
       async () => !(await snapshot()).accounts[0].attention,
@@ -222,8 +271,12 @@ async function launch() {
         expirationDate: Date.now() / 1000 + 86400,
       });
     }, first);
+    await ui
+      .getByRole("button", { name: "アカウント設定", exact: true })
+      .click();
     await ui.getByLabel("このアカウントの表示名").fill("Fixture account 1");
     await ui.getByRole("button", { name: "名前を保存", exact: true }).click();
+    await ui.screenshot({ path: path.join(profile, "settings.png") });
     await ui.getByRole("button", { name: "＋ アカウントを追加" }).click();
     await until(
       async () =>
@@ -233,6 +286,69 @@ async function launch() {
     );
     const second = (await snapshot()).selected;
     assert.notEqual(second, first);
+    await ui.getByRole("button", { name: /^新着一覧/ }).click();
+    await ui
+      .locator(".filters")
+      .getByRole("button", { name: "アカウント 2", exact: true })
+      .click();
+    await ui.getByRole("heading", { name: "新着を待っています" }).waitFor();
+    await remote(
+      first,
+      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA"><td data-legacy-thread-id="first-filter">first-account filtered arrival</td></tr>`)',
+    );
+    await remote(
+      second,
+      'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA"><td><span class="bog" data-legacy-thread-id="second-filter">別アカウントの新着</span></td></tr>`)',
+    );
+    await until(
+      async () =>
+        (await snapshot()).accounts.every((a) => a.data.pending === 1),
+      "independent pending counts",
+    );
+    assert.equal(await ui.locator(".arrival-list li").count(), 1);
+    await ui
+      .getByRole("button", { name: "新着表示をクリア", exact: true })
+      .click();
+    await until(
+      async () => (await snapshot()).accounts[1].data.pending === 0,
+      "selected account clear",
+    );
+    assert.equal((await snapshot()).accounts[0].data.pending, 1);
+    await ui
+      .locator(".filters")
+      .getByRole("button", { name: "すべてのアカウント", exact: true })
+      .click();
+    assert.ok((await ui.locator(".arrival-list li").count()) > 1);
+    await ui
+      .getByRole("button", { name: "新着表示をクリア", exact: true })
+      .click();
+    await until(
+      async () => (await snapshot()).accounts.every((a) => !a.attention),
+      "all accounts clear",
+    );
+    await ui
+      .locator(".arrival-list li")
+      .filter({
+        has: ui.getByRole("heading", {
+          name: "別アカウントの新着",
+          exact: true,
+        }),
+      })
+      .getByRole("button", { name: "受信トレイへ →", exact: true })
+      .click();
+    await until(
+      async () =>
+        (await snapshot()).selected === second &&
+        (await ui
+          .getByRole("button", { name: "受信トレイ", exact: true })
+          .getAttribute("aria-pressed")) === "true",
+      "history selects matching account",
+    );
+    await until(
+      async () =>
+        (await snapshot()).accounts[1].status === "受信トレイを監視中",
+      "history action inbox baseline",
+    );
     const cookieCount = await app.evaluate(async ({ webContents }, id) => {
       const wc = webContents
         .getAllWebContents()
@@ -275,6 +391,16 @@ async function launch() {
     }, first);
     assert.equal(persisted, "account-one");
     assert.ok((await snapshot()).accounts.every((a) => !a.attention));
+    assert.ok(
+      (await snapshot()).accounts.every((a) => a.data.arrivals.length === 0),
+    );
+    // The UI bounds are trusted-local only, clipped to the client area, and invalid input rejects.
+    await assert.rejects(
+      ui.evaluate(() =>
+        window.webAccounts.viewport({ x: -1, y: 0, width: 1, height: 1 }),
+      ),
+      /viewport/,
+    );
     await app.evaluate(({ dialog }) => {
       dialog.showMessageBox = async () => ({
         response: 1,
@@ -318,6 +444,11 @@ async function launch() {
           ok: true,
           checks: [
             "DOM arrival",
+            "sender and subject without body snippet",
+            "history tab hides view and continues observing",
+            "arrival counts, acknowledgement and transient history",
+            "account settings UI",
+            "multi-account history filters and scoped clearing",
             "read-state ignored",
             "per-account isolation",
             "background monitoring",

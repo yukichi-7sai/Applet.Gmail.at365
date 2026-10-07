@@ -77,7 +77,7 @@ async function until(fn, message) {
     await dock.waitForFunction(() => !!window.dock);
     assert.equal(
       (await dock.evaluate(() => window.dock.snapshot())).version,
-      "0.12.0",
+      "0.13.0",
     );
     await dock.evaluate(() => window.dock.executeCommand("at365.gmail.open"));
     await until(async () => {
@@ -111,7 +111,7 @@ async function until(fn, message) {
         .querySelector("tbody")
         .insertAdjacentHTML(
           "afterbegin",
-          '<tr class="zA"><td data-legacy-thread-id="portable-arrival">New fixture</td></tr>',
+          '<tr class="zA"><td class="yW"><span email="fixture@example.test" name="Portable sender">Portable sender</span></td><td><span class="bog" data-legacy-thread-id="portable-arrival">Portable arrival subject</span><span class="y2">private preview</span></td></tr>',
         ),
     );
     await until(
@@ -120,6 +120,16 @@ async function until(fn, message) {
           .attention,
       "portable DOM arrival",
     );
+    await ui.getByRole("button", { name: /^新着一覧/ }).click();
+    await ui
+      .getByRole("heading", { name: "Portable arrival subject" })
+      .waitFor();
+    const arrivalData = (await ui.evaluate(() => window.webAccounts.snapshot()))
+      .accounts[0].data;
+    assert.equal(arrivalData.pending, 1);
+    assert.equal(arrivalData.arrivals[0].sender, "Portable sender");
+    assert.ok(!JSON.stringify(arrivalData).includes("private preview"));
+    await ui.screenshot({ path: path.join(profile, "arrivals.png") });
     await dock.evaluate(() =>
       window.dock.executeCommand("at365.gmail.acknowledge"),
     );
@@ -160,6 +170,7 @@ async function until(fn, message) {
         "offline WebContentsView",
         "remote isolation",
         "DOM arrival",
+        "metadata and history UI without preview",
         "acknowledge",
         "stop/restart",
         "clean exit",

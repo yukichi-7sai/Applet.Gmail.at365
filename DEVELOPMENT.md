@@ -42,11 +42,11 @@ Gmail開発profileはハードウェアアクセラレーションをオフに�
 Google認証の許可先には`https://accounts.youtube.com`も含めます。[GoogleChromeLabsのログイン用例外一覧](https://github.com/GoogleChromeLabs/managed-guest-testing)に掲載され、[GoogleのYouTubeヘルプ](https://support.google.com/youtube/answer/69961?hl=ja)にもサービス間のGoogleログイン連携が説明されています。任意のYouTubeページやワイルドカードには広げず、GmailのDOM観測先は`https://mail.google.com`のままです。manifestの変更はホスト起動時の再読込が必要です。
 
 - `src/index.ts`: Node Applet。2秒ごとに画面観測結果を取得し、アカウント別判定・通知・パネル・トレイを更新。ページを再読み込みしてポーリングしません。
-- `web/observer.js`: Gmail専用の読取処理。MutationObserverでDOMの世代を更新し、800ms静まった状態を読む。Gmailの受信トレイ先頭ページだけで、スレッド/最終メッセージIDと未読行フラグを取得。本文・送信元・件名は取得しない。
-- `src/monitor.ts`: 初回基準、先頭行への追加、未読スレッドのメッセージID更新、重複排除、アカウント別新着状態を処理。ID履歴はセッション内・最大4096件を目安に保持し、2048件へ整理。
-- `renderer/`: Reactのアカウント切替・保存名・Gmail操作UI。
+- `web/observer.js`: Gmail専用の読取処理。MutationObserverでDOMの世代を更新し、800ms静まった状態を読む。受信トレイ先頭ページのスレッド/最終メッセージIDと未読行フラグ、`.yW`の送信元・`.bog`の件名だけを取得。`.y2`プレビューや本文は対象外。詳細は最大40行・12KB、観測全体は55KBまでに制限し、詳細がない行も識別子で新着検知する。
+- `src/monitor.ts`: 初回基準、先頭行への追加、未読スレッドのメッセージID更新、重複排除、アカウント別新着状態を処理。先頭の基準スレッドに返信が同時到着しても、スレッドIDで位置を照合する。ID履歴はセッション内・最大4096件を目安に保持し、2048件へ整理。型付き`Arrival`で検知数・送信元・件名・検知時刻・クリア済み状態を保持し、履歴は最大50件かつreport用JSON48KB以内。停止・監視OFFで消去する。
+- `renderer/`: Reactの受信トレイ・新着一覧・アカウント設定。`ResizeObserver`でローカル画面の表示領域を`viewport`へ渡し、一覧/設定ではnullでWebContentsViewを隠す。背後のページは保持して監視する。
 - ホストの[WebアカウントAPI](../AppDock.at365/docs/web-accounts.md): 共通のBrowserWindow/WebContentsView、永続セッション、操作IPC、停止・破棄を担当。
 
 既存のElectron表示テストで実ログインを確認でき、AppDockもElectronなのでWebContentsViewを採用しました。WebView2 Evergreenを別途導入する必要がなく、UI/起動/保存領域をホストに揃えられます。Gmail固有のセレクターと判定はAppletへ置き、ホストはWebサービスごとの宣言を受ける構成です。
 
-今後は観測結果を型付きのMailArrivalへ拡張し、件数・送信元・件名を段階的に追加します。本文取得→ローカルLLM→TTSは独立した取消可能なジョブとして扱い、DOM読取と通知を待たせません。バッチごとの新着判定と実メール件数は別の値です。
+0.2.0はAppDock 0.13.0の`report(..., data)`と`viewport`を使用します。送信元・件名はメモリー内のローカルUI向けreportへ渡し、診断には残しません。通知への詳細表示は`notificationDetails: false`を既定とし、通知設定変更では基準・履歴を消去しません。将来の本文取得→ローカルLLM→TTSは独立した取消可能なジョブとして扱い、DOM読取と通知を待たせません。検知したスレッド更新数と実メール件数は別の値です。

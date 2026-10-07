@@ -1,6 +1,6 @@
 (() => {
   // Isolated world 1001: no Electron/Node APIs, no IPC, and no authentication code.
-  const slot = "__at365GmailObserverV2";
+  const slot = "__at365GmailObserverV3";
   let state = globalThis[slot];
   if (!state) {
     state = {
@@ -25,6 +25,9 @@
         "data-legacy-last-message-id",
         "aria-selected",
         "aria-busy",
+        "class",
+        "email",
+        "name",
       ],
     });
     globalThis[slot] = state;
@@ -65,6 +68,14 @@
   );
   const keys = [];
   const unread = [];
+  const details = [];
+  let detailBytes = 0;
+  const text = (value, limit) =>
+    (value || "")
+      .replace(/[\u0000-\u001f\u007f]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, limit);
   for (const row of rows) {
     const thread = row.matches("[data-legacy-thread-id], [data-thread-id]")
       ? row
@@ -76,15 +87,36 @@
     const lastMessage =
       row.getAttribute("data-legacy-last-message-id") ||
       message?.getAttribute("data-legacy-last-message-id");
-    // No body, sender, subject, cookie, token, or unread-count extraction in this version.
+    // Read only the row's sender and subject; .y2 snippets and message bodies are excluded.
     if (threadId && /^[A-Za-z0-9:#_-]{1,100}$/.test(threadId)) {
       const key =
         threadId +
         (lastMessage && /^[A-Za-z0-9:#_-]{1,90}$/.test(lastMessage)
           ? "~" + lastMessage
           : "");
-      if (!keys.includes(key)) keys.push(key);
+      if (keys.includes(key)) continue;
+      keys.push(key);
       if (row.classList.contains("zE")) unread.push(key);
+      const senders = [
+        ...row.querySelectorAll(".yW [email], .yW [name], span[email]"),
+      ].filter(visible);
+      const senderElement = senders.at(-1);
+      const subjectElement = [...row.querySelectorAll(".bog")].find(visible);
+      const detail = {
+        key,
+        sender: text(
+          senderElement?.getAttribute("name") ||
+            senderElement?.textContent ||
+            senderElement?.getAttribute("email"),
+          120,
+        ),
+        subject: text(subjectElement?.textContent, 200),
+      };
+      const bytes = new TextEncoder().encode(JSON.stringify(detail)).length;
+      if (details.length < 40 && detailBytes + bytes <= 12000) {
+        details.push(detail);
+        detailBytes += bytes;
+      }
     }
     if (keys.length === 200) break;
   }
@@ -96,7 +128,19 @@
     ready: keys.length > 0 || empty,
     keys,
     unread,
+    details,
     reason: keys.length || empty ? undefined : "no-row-ids",
   };
+  // Keep the host observation bounded even for unusual long IDs or multibyte text.
+  while (
+    new TextEncoder().encode(JSON.stringify(state.cache)).length > 55000 &&
+    keys.length
+  ) {
+    const key = keys.pop();
+    const u = unread.indexOf(key);
+    if (u >= 0) unread.splice(u, 1);
+    const d = details.findIndex((detail) => detail.key === key);
+    if (d >= 0) details.splice(d, 1);
+  }
   return state.cache;
 })();

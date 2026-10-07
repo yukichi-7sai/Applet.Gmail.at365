@@ -63,7 +63,15 @@ delete env.ELECTRON_RUN_AS_NODE;
         error: a.error,
         status: a.status,
         rowIds: a.observation?.keys?.length ?? 0,
+        senderRows:
+          a.observation?.details?.filter((d) => !!d.sender).length ?? 0,
+        subjectRows:
+          a.observation?.details?.filter((d) => !!d.subject).length ?? 0,
+        initialHistoryCount: a.data?.arrivals?.length ?? 0,
       })),
+      hardwareAcceleration: await app.evaluate(({ app }) =>
+        app.isHardwareAccelerationEnabled(),
+      ),
       diagnostics,
     };
     fs.writeFileSync(
