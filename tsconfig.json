@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "Node16", "moduleResolution": "Node16",
+    "rootDir": "src", "outDir": "out", "strict": true, "esModuleInterop": true,
+    "skipLibCheck": true, "types": ["node"],
+    "typeRoots": ["../AppDock.at365/node_modules/@types"]
+  },
+  "include": ["src/**/*.ts"]
+}

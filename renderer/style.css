@@ -1,0 +1,211 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #101318;
+  color: #e4e8ee;
+  font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+  font-size: 14px;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+  color: inherit;
+  border: 1px solid #303841;
+  border-radius: 8px;
+  background: #1b222b;
+  padding: 9px 12px;
+}
+button:hover:not(:disabled) {
+  background: #283641;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+input {
+  color: inherit;
+  background: #111820;
+  border: 1px solid #34414e;
+  border-radius: 7px;
+  padding: 9px;
+  min-width: 0;
+}
+header {
+  height: 66px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #29313b;
+  background: #151a21;
+}
+.brand {
+  width: 236px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+.mark {
+  display: grid;
+  place-items: center;
+  background: #79d6c2;
+  color: #102722;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 24px;
+  width: 38px;
+  height: 38px;
+}
+.brand strong {
+  font-size: 19px;
+}
+.brand small {
+  display: block;
+  color: #98a7b7;
+  font-size: 11px;
+}
+.intro {
+  font-size: 13px;
+}
+.intro span {
+  display: block;
+  color: #97a5b4;
+  font-size: 11px;
+  margin-top: 4px;
+}
+aside {
+  position: absolute;
+  left: 0;
+  top: 66px;
+  bottom: 0;
+  width: 236px;
+  background: #151a21;
+  border-right: 1px solid #29313b;
+  padding: 20px 14px;
+  overflow: auto;
+}
+.section {
+  font-size: 11px;
+  color: #91a0b1;
+  padding: 0 10px 12px;
+  letter-spacing: 0.08em;
+}
+nav {
+  display: grid;
+  gap: 7px;
+}
+.account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  border-color: transparent;
+  min-width: 0;
+}
+.account span:last-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account.selected {
+  background: #223d39;
+  border-color: #407b6f;
+  color: #98ebd7;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  min-width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #ffffff0c;
+}
+.add {
+  width: 100%;
+  margin-top: 14px;
+  background: transparent;
+  color: #a4e4d4;
+}
+.account-settings {
+  border-top: 1px solid #29313b;
+  margin-top: 26px;
+  padding-top: 20px;
+  display: grid;
+  gap: 9px;
+}
+.account-settings label {
+  font-size: 11px;
+  color: #a8b5c5;
+}
+.delete {
+  background: transparent;
+  border-color: transparent;
+  color: #be9d9d;
+  font-size: 11px;
+}
+.note {
+  margin: 25px 8px;
+  color: #94a3b4;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.profile {
+  padding: 12px 8px;
+  border-top: 1px solid #29313b;
+  font-size: 10px;
+  line-height: 1.8;
+  color: #6f8296;
+}
+.toolbar {
+  position: absolute;
+  left: 236px;
+  right: 0;
+  top: 66px;
+  height: 80px;
+  padding: 10px 14px;
+  background: #191f27;
+}
+.navigation {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.navigation button {
+  padding: 6px 10px;
+}
+.navigation input {
+  flex: 1;
+  font-size: 12px;
+  padding: 7px;
+  color: #c0cbd8;
+}
+.inbox {
+  white-space: nowrap;
+  font-size: 12px;
+}
+.status {
+  padding-top: 6px;
+  color: #9badbc;
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.error {
+  color: #ffb1a5;
+}
+main {
+  position: absolute;
+  left: 236px;
+  right: 0;
+  top: 146px;
+  bottom: 0;
+  background: white;
+  color: #65717b;
+  display: grid;
+  place-items: center;
+}
