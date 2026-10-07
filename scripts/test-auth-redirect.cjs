@@ -131,6 +131,15 @@ async function until(fn, message) {
       "Google/YouTube authentication redirect did not return to Gmail",
     );
     const successful = await snap();
+    assert.equal(
+      await application.evaluate(({ webContents }) =>
+        webContents
+          .getAllWebContents()
+          .find((w) => w.getURL().startsWith("https://mail.google.com"))
+          .debugger.isAttached(),
+      ),
+      true,
+    );
     assert.equal(successful.accounts[0].error, "");
     assert.equal(successful.accounts[0].attention, false);
     assert.equal(
@@ -159,6 +168,15 @@ async function until(fn, message) {
       "logout landing page",
     );
     const logout = await snap();
+    assert.equal(
+      await application.evaluate(({ webContents }) =>
+        webContents
+          .getAllWebContents()
+          .find((w) => w.getURL().startsWith("https://workspace.google.com"))
+          .debugger.isAttached(),
+      ),
+      false,
+    );
     assert.equal(logout.accounts[0].error, "");
     assert.equal(logout.accounts[0].observation, null);
     assert.ok(!JSON.stringify(logout).includes("fixture-secret"));
@@ -204,6 +222,7 @@ async function until(fn, message) {
         "error clears on recovery",
         "logout reaches workspace.google.com and re-login returns to Gmail",
         "hardware acceleration disabled",
+        "active policy only for Gmail, released on authentication",
       ],
     };
     fs.writeFileSync(

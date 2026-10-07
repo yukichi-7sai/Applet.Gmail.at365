@@ -1,5 +1,16 @@
 # 検証記録
 
+## 2026-10-08: 0.4.1 初回未表示の更新開始と終了エラー
+
+- ユーザーが0.4.0/AppDock0.15.0でも、一度Web画面を表示した枠だけ更新されると報告。前回のPlaywright検証は自動のEmulation.setFocusEmulationEnabledにより通常起動のフォーカス条件を変えていた。前回のrAF/paint確認だけでは実Gmailの更新開始の証拠として不十分だった。
+- Playwrightを使わない通常起動を追加。`artifacts/gmail-dev/startup-native-before.json`では、透明/画面外の実Gmailがfocus:false/painted:false、更新用sync完了0で止まった。WindowsのCalculateNativeWinOcclusionを無効にすると初回描画/sync3が成立するが、focus:falseのままでは新着が反映されないことも確認した。
+- ユーザーが送った2通の開発用メールで比較。1通目は旧条件で表示/フォーカスだけでは反映されず、再読込後に15行/未読2として反映。2通目は描画条件を直しても未表示のままでは止まり、ページ内のアクティブ状態を有効にすると画面未表示のままsync3→6、15→16行、未読2→3へ更新した。WindowsのnativeFocus/親Windowのfocusはfalse、opacity0を維持。記録: `artifacts/gmail-dev/startup-native-mail-arrival.json`。メール本文/他の件名/認証値は取得・出力せず、既読・未読を操作していない。
+- ホスト0.15.1とmanifest.keepActive:trueを実装。observeOriginのGmailだけをChromiumでアクティブにし、メインフレーム移動開始時/認証ページでは解除。WebページJS・認証・入力の偽装、画面/アカウントの自動切替は行わない。修正版の通常起動でも画面を開く前に16行/未読3/新着3を確認（GPUオフ、保存認証保持）。記録: `artifacts/gmail-dev/startup-native-probe.json`。実受信トレイは1枠、2枠目は認証待ち。実複数アカウント/長時間/スリープは未確認。
+- 新しい通常起動fixtureの修正前条件: `artifacts/native-background-1791393028469/result.json`（更新開始の不足を再現）。最終発行コード: `artifacts/native-background-1791394005659/result.json`。テストツールのfocus overrideなしで2枠の初回描画/ページ自身のfetch更新・未読集計・選択保持・非表示reload・認証時解除・正常破棄を確認。
+- ユーザーから終了時のエラー画像を受領。`WebContents.dispose`で`Object has been destroyed`。破棄後にwc.debuggerを取り直していた箇所を修正し、Debugger参照を生存中に保持、削除/停止前に明示解放する。対応する破棄済みgetterの回帰と、最終単一EXEの停止/再開/正常終了が成功。旧検証版の当該ダイアログは所有PIDとportable profileを照合して閉じた。
+- 型検査/Vite、Gmail15/15・ホスト82/82成功。最終portable: `artifacts/portable-1791394017868/result.json`（0.15.1、exitCode0、終了ダイアログなし）。Google/YouTube/日本向けGoogle/Workspaceの認証とGmail限定のDebugger適用は配布EXEで確認。最終認証試験: `artifacts/auth-redirect-1791394123364/result.json`。
+- 最終本体EXEは100,443,530 bytes、SHA256 `D246228B7F8EB393FAA51E4ECAC25E4BD85EED0914C851AE764B755382ADAB8F`。.NETはframework-dependent、Runtime混入なし。開発配置のみ更新。通常使用版は本体EXEも0.15.1へ更新する必要がある。
+
 ## 2026-10-08: 0.4.0 テーマ・音声コピー・初回未表示の更新
 
 - AppDock 0.15.0を最低ホスト版にし、Gmailの操作画面をホストのライト/ダーク/システムテーマへ即時同期。ヘッダーを封筒アイコンと整理した配色へ更新。Google側のWebページは変更しない。
