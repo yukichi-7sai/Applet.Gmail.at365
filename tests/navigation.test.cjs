@@ -12,6 +12,7 @@ test("Gmail allows the Google sign-in chain through accounts.youtube.com", () =>
   const origins = manifest.webAccounts.origins;
   for (const url of [
     "https://accounts.google.com/fixture-login",
+    "https://accounts.google.co.jp/fixture-localized",
     "https://accounts.youtube.com/fixture-check?continue=https%3A%2F%2Fmail.google.com",
     "https://accounts.google.com/fixture-return",
     "https://mail.google.com/mail/u/0/#inbox",
@@ -29,6 +30,10 @@ test("Gmail allows the Google sign-in chain through accounts.youtube.com", () =>
     "https://workspace.google.com.evil.test/",
     "http://workspace.google.com/",
     "https://user:password@workspace.google.com/",
+    "https://accounts.google.co.jp.evil.test/",
+    "http://accounts.google.co.jp/",
+    "https://user:password@accounts.google.co.jp/",
+    "https://accounts.google.co.jp:8443/",
   ])
     assert.equal(allowedWebNavigation(url, origins), false);
 });

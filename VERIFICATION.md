@@ -1,5 +1,12 @@
 # 検証記録
 
+## 2026-10-07: 0.1.3 日本向けGoogle認証先
+
+- テスト用AppDockのログインが`https://accounts.google.co.jp`への未対応転送として停止したとの報告。利用者から、確認中のアカウントはGoogle Workspaceアカウントとの追加情報を受領。Workspaceがこの転送を発生させた原因とは断定しない。
+- Google公式のsupported_domainsに.google.co.jpが掲載され、accounts.google.co.jpの公開入口がaccounts.google.comの正式ログイン画面へ転送されることを確認。Gmail manifestと旧Webテストの許可先に、この正確な認証originを追加。GmailのobserveOrigin、HTTPS/資格情報/ポート/類似ドメインの境界、GPUオフを維持。
+- 型検査/Vite/新Gmail8回帰、旧Webテストの型検査/Vite/2回帰成功。発行版ホストのオフライン302でGoogle→YouTube認証→accounts.google.co.jp→Google→Gmailを再現し、ログアウト/再ログイン、境界遮断、GPU無効も成功。結果: `artifacts/auth-redirect-1791365829812/result.json`。
+- 実利用manifestを独自変更なしと照合して0.1.3へ原子的に更新し、発行元SHA256一致。ユーザーがテスト用AppDockを完全終了したことを確認し、0.1.3をGPUオフで起動してGmail画面を表示した。ログイン領域は保持。Google Workspaceでの実ログイン完了はユーザー確認待ち。
+
 ## 2026-10-07: 0.1.2 ログアウト後の移動先とテスト用GPUオフ
 
 - 開発用テスト画面でのログアウト後、`https://workspace.google.com`への転送が未対応として遮断されたとの報告。Gmailの公式案内・ログイン入口があるoriginとして正確に追加。Gmail専用observeOriginを維持。旧Web表示テストにもYouTube認証先とWorkspaceの許可を反映。

@@ -77,6 +77,10 @@ async function until(fn, message) {
             );
           if (u.hostname === "accounts.youtube.com")
             return Response.redirect(
+              "https://accounts.google.co.jp/fixture-localized?token=fixture-secret",
+            );
+          if (u.hostname === "accounts.google.co.jp")
+            return Response.redirect(
               "https://accounts.google.com/fixture-return?token=fixture-secret",
             );
           if (
@@ -136,9 +140,10 @@ async function until(fn, message) {
     const chain = await application.evaluate(
       () => globalThis.__authFixtureOrigins,
     );
-    assert.deepEqual(chain.slice(0, 4), [
+    assert.deepEqual(chain.slice(0, 5), [
       "https://accounts.google.com",
       "https://accounts.youtube.com",
+      "https://accounts.google.co.jp",
       "https://accounts.google.com",
       "https://mail.google.com",
     ]);
@@ -193,6 +198,7 @@ async function until(fn, message) {
       chain,
       checks: [
         "accounts.youtube.com redirect returns to Gmail",
+        "accounts.google.co.jp localized authentication returns to Gmail",
         "lookalike origin blocked",
         "auth token absent from local UI",
         "error clears on recovery",
