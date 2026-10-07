@@ -7,6 +7,7 @@ const o = (keys, extra = {}) => ({
   document: "page-one",
   revision: 1,
   keys,
+  rowsComplete: true,
   unread: extra.unread ?? [],
   read: keys.filter((key) => !(extra.unread ?? []).includes(key)),
   ...extra,
@@ -192,7 +193,7 @@ test("reading reduces badge without losing history; marking unread restores coun
   assert.ok(m.history.every((entry) => entry.unread === false));
 });
 
-test("read and unknown arrivals cannot notify or increment unread badge; missing rows are unknown", () => {
+test("read and unknown arrivals cannot notify; removed rows within the observed range leave history", () => {
   const m = new InboxMonitor();
   m.observe(o(["old"]));
   assert.equal(m.observe(o(["read-new", "old"])), false);
@@ -209,7 +210,7 @@ test("read and unknown arrivals cannot notify or increment unread badge; missing
   assert.equal(m.pending, 1);
   m.observe(o(["old"]));
   assert.equal(m.pending, 0);
-  assert.equal(m.history[0].unread, null);
+  assert.equal(m.history.length, 0);
   assert.equal(
     parseObservation(o(["a"], { unread: ["a"], read: ["a"] })),
     null,
@@ -235,4 +236,73 @@ test("changed last-message ID in unread thread detects reply; marking unread and
     m.observe(o(["thread~sent", "other~same"], { unread: [] })),
     false,
   );
+});
+
+test("confirmed whole-inbox removal clears every reply and acknowledged history entry", () => {
+  const m = new InboxMonitor();
+  m.observe(o(["a~one", "b"], { unread: ["a~one", "b"], complete: true }));
+  m.acknowledge();
+  m.observe(o(["a~two", "b"], { unread: ["a~two", "b"], complete: true }));
+  assert.equal(m.history.length, 3);
+  assert.equal(m.observe(o(["b"], { unread: ["b"], complete: true })), false);
+  assert.deepEqual(
+    m.history.map((entry) => entry.key),
+    ["b"],
+  );
+  assert.equal(m.pending, 0);
+  m.observe(o([], { complete: true }));
+  assert.equal(m.history.length, 0);
+  assert.equal(m.attention, false);
+});
+
+test("page-boundary displacement and unrelated categories do not erase arrival history", () => {
+  const m = new InboxMonitor();
+  m.observe(o(["a", "b", "tail"], { unread: ["tail"] }));
+  m.observe(o(["new", "a", "b"], { unread: ["new"] }));
+  assert.ok(
+    m.history.some((entry) => entry.key === "tail" && entry.unread === null),
+  );
+  m.observe(o([], { context: "another-category", complete: true }));
+  assert.equal(m.history.length, 2);
+  m.observe(o(["a", "b"], { document: "reload", complete: true }));
+  assert.equal(m.history.length, 0);
+});
+
+test("partial inbox removal needs stable ordered lower anchors, not a reload or reorder", () => {
+  for (const next of [
+    o(["c", "a"]),
+    o(["a", "c"], { document: "reload" }),
+    o(["a", "c"], { context: "another-category" }),
+    o(["unrelated"]),
+    o(["a", "c"], { rowsComplete: false }),
+    o([], { ready: false, reason: "settling" }),
+  ]) {
+    const m = new InboxMonitor();
+    m.observe(o(["a", "b", "c"], { unread: ["b"] }));
+    m.observe(next);
+    assert.equal(m.history.length, 1);
+  }
+  const m = new InboxMonitor();
+  m.observe(o(["a", "b", "c"], { unread: ["a", "b"] }));
+  m.observe(o(["c", "older"]));
+  assert.equal(m.history.length, 0);
+  assert.equal(m.pending, 0);
+});
+
+test("complete empty inbox reconciles pending threads beyond the history limit", () => {
+  const m = new InboxMonitor();
+  const keys = Array.from({ length: 70 }, (_, i) => "thread" + i);
+  m.observe(o(keys, { unread: keys, complete: true }));
+  assert.equal(m.history.length, 50);
+  assert.equal(m.pending, 70);
+  m.observe(o([], { complete: true }));
+  assert.equal(m.pending, 0);
+  assert.equal(m.history.length, 0);
+  m.observe(o(keys, { unread: keys, complete: true }));
+  assert.equal(
+    m.pending,
+    0,
+    "restoring old mail does not create another notification",
+  );
+  assert.equal(parseObservation(o([], { complete: "yes" })), null);
 });

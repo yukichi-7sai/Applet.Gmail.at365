@@ -126,6 +126,7 @@ async function launch() {
   await app.evaluate(
     ({ app, dialog }, { soundFile, accounts }) => {
       globalThis.fixtureSounds = [];
+      globalThis.fixtureLoads = 0;
       app.on("web-contents-created", (_event, wc) =>
         wc.on("did-finish-load", () => {
           if (wc.getTitle() === "AppDock Audio")
@@ -142,20 +143,19 @@ async function launch() {
         const html = `<!doctype html><html><body><main role="main"><table><tbody>
         <tr class="zA zE"><td class="yW"><span name="Alice Fixture">Alice Fixture</span></td><td><span class="bog" data-legacy-thread-id="shared" data-legacy-last-message-id="v1">${index === 1 ? "仕事専用メール" : "個人専用メール"}</span></td></tr>
         <tr class="zA zE"><td class="yW"><span name="開発チーム">開発チーム</span></td><td><span class="bog" data-legacy-thread-id="seed">起動時の確認</span></td></tr>
-        </tbody></table></main><script>
+        </tbody></table><span class="Dj"><span class="ts">1</span>–<span class="ts">2</span> / <span class="ts">2</span></span></main><script>
         document.addEventListener('click', event => {
           const subject = event.target.closest('.bog'); if (!subject) return;
           const row = subject.closest('tr'); row.classList.remove('zE'); row.classList.add('yO');
           location.hash = '#inbox/' + subject.getAttribute('data-legacy-thread-id');
         });
         </script></body></html>`;
-        ses.protocol.handle(
-          "https",
-          () =>
-            new Response(html, {
-              headers: { "content-type": "text/html; charset=utf-8" },
-            }),
-        );
+        ses.protocol.handle("https", () => {
+          fixtureLoads++;
+          return new Response(html, {
+            headers: { "content-type": "text/html; charset=utf-8" },
+          });
+        });
       });
     },
     { soundFile, accounts },
@@ -177,6 +177,10 @@ async function launch() {
   await until(
     async () => (await snapshot()).accounts.every((a) => a.data?.pending === 2),
     "startup unread",
+  );
+  assert.ok(
+    (await snapshot()).accounts.every((a) => a.observation.complete),
+    "Gmail range confirms full row coverage",
   );
 }
 async function close() {
@@ -208,7 +212,7 @@ async function close() {
       .getByRole("button", { name: "バージョン情報・更新", exact: true })
       .click();
     await dock
-      .getByRole("heading", { name: "AppDock.at365 v0.15.0" })
+      .getByRole("heading", { name: /^AppDock\.at365 v\d+\.\d+\.\d+$/ })
       .waitFor();
     assert.equal(await app.evaluate(() => updateChecks), 0);
     const hostAbout = dock.locator(".about-host");
@@ -428,6 +432,8 @@ async function close() {
       accounts[0].id,
       "document.querySelector('[data-legacy-thread-id=\"later\"]').closest('tr').remove()",
     );
+    const loadsBeforeMissing = await app.evaluate(() => fixtureLoads);
+    const missingStarted = Date.now();
     await ui
       .locator(".arrival-list li")
       .filter({ hasText: "個人用" })
@@ -437,7 +443,88 @@ async function close() {
       .getByRole("status")
       .filter({ hasText: "対象のメールが現在の受信トレイに見つからない" })
       .waitFor();
+    const missingWaitMs = Date.now() - missingStarted;
+    assert.ok(missingWaitMs < 2500, "missing row returns promptly");
+    assert.equal(
+      await app.evaluate(() => fixtureLoads),
+      loadsBeforeMissing,
+      "no redundant inbox reload",
+    );
     assert.ok((await snapshot()).accounts[0].url.endsWith("#inbox"));
+    await until(
+      async () =>
+        !(await snapshot()).accounts[0].data.arrivals.some(
+          (a) => a.key === "later",
+        ),
+      "deleted row leaves history",
+    );
+    // An explicit empty state is needed even after deleting the final row.
+    await remote(
+      accounts[0].id,
+      `document.querySelector('[role="main"]').innerHTML = '<div class="ae4"><table class="F" role="grid"><tbody></tbody></table><table class="TB"><tbody><tr class="TD"><td class="TC">新着メールはありません。</td></tr></tbody></table></div>'`,
+    );
+    await until(async () => {
+      const account = (await snapshot()).accounts[0];
+      return (
+        account.observation?.ready &&
+        account.observation.complete &&
+        account.data.pending === 0 &&
+        account.data.arrivals.length === 0
+      );
+    }, "last deletion clears badge and history in empty inbox");
+    // Neither a paginated inbox nor an unidentified row proves full coverage.
+    await remote(
+      accounts[0].id,
+      `document.querySelector('[role="main"]').innerHTML = '<table><tbody><tr class="zA yO"><td><span class="bog" data-legacy-thread-id="range">Range fixture</span></td></tr></tbody></table><span class="Dj"><span class="ts">1</span>–<span class="ts">1</span> / <span class="ts">99</span></span>'`,
+    );
+    await until(async () => {
+      const observation = (await snapshot()).accounts[0].observation;
+      return (
+        observation?.ready &&
+        observation.keys.includes("range") &&
+        !observation.complete
+      );
+    }, "pagination cannot prove absence from whole inbox");
+    await remote(
+      accounts[0].id,
+      `document.querySelector('.Dj .ts:last-child').textContent = '1'`,
+    );
+    await until(
+      async () => (await snapshot()).accounts[0].observation?.complete,
+      "full numeric range recognized",
+    );
+    await remote(
+      accounts[0].id,
+      `document.querySelector('tbody').insertAdjacentHTML('beforeend','<tr class="zA yO"><td>Unidentified fixture row</td></tr>');document.querySelector('.Dj').innerHTML='<span class="ts">1</span>–<span class="ts">2</span> / <span class="ts">2</span>'`,
+    );
+    await until(async () => {
+      const observation = (await snapshot()).accounts[0].observation;
+      return observation?.ready && !observation.complete;
+    }, "unidentified row prevents full coverage");
+    await remote(
+      accounts[0].id,
+      `document.querySelector('[role="main"]').innerHTML='<table class="TB"><tbody><tr class="TD"><td class="TC">Unknown fixture state</td></tr></tbody></table>'`,
+    );
+    await until(
+      async () =>
+        (await snapshot()).accounts[0].observation?.reason === "no-row-ids",
+      "unknown empty markup cannot clear history",
+    );
+    assert.ok(
+      (await snapshot()).accounts[0].data.arrivals.some(
+        (a) => a.key === "range",
+      ),
+    );
+    await remote(
+      accounts[0].id,
+      `document.querySelector('.TC').textContent='No new mail!'`,
+    );
+    await until(async () => {
+      const account = (await snapshot()).accounts[0];
+      return (
+        account.observation?.complete && account.data.arrivals.length === 0
+      );
+    }, "English empty marker reconciles history");
     await ui
       .getByRole("button", { name: "アカウント設定", exact: true })
       .click();
@@ -537,6 +624,10 @@ async function close() {
             "thread opening uses correct session",
             "local and remote account shortcuts and custom binding",
             "missing thread falls back to inbox",
+            "missing thread returns promptly without reloading",
+            "deleted row and last empty inbox clear history and badge",
+            "pagination and unknown rows cannot prove whole-inbox absence",
+            "Japanese and English explicit empty states",
             "cycle command and buttons",
             "independent account sound with desktop notifications off",
             "WAV preview/reset/OFF",
@@ -548,6 +639,7 @@ async function close() {
             "legacy sound migration preserves ON and deduplicates copies",
           ],
           geometry: normalGeometry,
+          missingWaitMs,
         },
         null,
         2,
@@ -558,6 +650,7 @@ async function close() {
     if (app) await close().catch(() => {});
   }
 })().catch((error) => {
+  fs.writeFileSync(path.join(profile, "failure.txt"), String(error));
   console.error(error);
   process.exitCode = 1;
 });

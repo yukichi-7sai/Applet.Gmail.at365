@@ -4,6 +4,8 @@ export interface InboxObservation {
   document: string;
   revision: number;
   keys: string[];
+  complete?: boolean;
+  rowsComplete?: boolean;
   unread?: string[];
   read?: string[];
   reason?: string;
@@ -17,6 +19,7 @@ export interface Arrival {
   acknowledged: boolean;
   unread: boolean | null;
   initial: boolean;
+  context: string;
 }
 export function parseObservation(raw: unknown): InboxObservation | null {
   const v = raw as InboxObservation | null;
@@ -31,6 +34,9 @@ export function parseObservation(raw: unknown): InboxObservation | null {
     v.keys.length > 200 ||
     v.keys.some((k) => typeof k !== "string" || !k || k.length > 200) ||
     new Set(v.keys).size !== v.keys.length ||
+    (v.complete !== undefined && typeof v.complete !== "boolean") ||
+    (v.rowsComplete !== undefined && typeof v.rowsComplete !== "boolean") ||
+    (v.complete === true && v.rowsComplete === false) ||
     (v.unread !== undefined &&
       (!Array.isArray(v.unread) ||
         v.unread.length > 200 ||
@@ -64,6 +70,7 @@ export class InboxMonitor {
   private seen = new Set<string>();
   private initialized = false;
   private pendingThreads = new Map<string, boolean | null>();
+  private pendingContexts = new Map<string, string>();
   attention = false;
   pending = 0;
   history: Arrival[] = [];
@@ -85,6 +92,48 @@ export class InboxMonitor {
     }
     const old = this.previous;
     this.previous = next;
+    const thread = (key: string) => key.split("~")[0];
+    const nextThreads = new Set(next.keys.map(thread));
+    const removed = new Set<string>();
+    if (next.complete) {
+      for (const entry of this.history)
+        if (
+          entry.context === next.context &&
+          !nextThreads.has(thread(entry.key))
+        )
+          removed.add(thread(entry.key));
+      // Pending may outlive the 50-entry history. Reconcile its whole scope too.
+      for (const [id, context] of this.pendingContexts)
+        if (context === next.context && !nextThreads.has(id)) removed.add(id);
+    } else if (
+      old &&
+      old.rowsComplete &&
+      next.rowsComplete &&
+      old.context === next.context &&
+      old.document === next.document
+    ) {
+      const prior = old.keys.map(thread);
+      const shared = next.keys.map(thread).filter((id) => prior.includes(id));
+      const ordered = prior.filter((id) => nextThreads.has(id));
+      if (shared.length && JSON.stringify(shared) === JSON.stringify(ordered)) {
+        // Disappearance above a surviving lower row is within the same range.
+        // Rows pushed beyond the page boundary are not evidence of deletion.
+        const coveredEnd = prior.lastIndexOf(shared.at(-1)!);
+        for (const id of prior.slice(0, coveredEnd))
+          if (!nextThreads.has(id)) removed.add(id);
+      }
+    }
+    if (removed.size) {
+      this.history = this.history.filter(
+        (entry) =>
+          entry.context !== next.context || !removed.has(thread(entry.key)),
+      );
+      for (const id of removed) {
+        if (this.pendingContexts.get(id) !== next.context) continue;
+        this.pendingThreads.delete(id);
+        this.pendingContexts.delete(id);
+      }
+    }
     const arrivals = new Set<string>();
     const initial = !this.initialized;
     this.initialized = true;
@@ -164,14 +213,20 @@ export class InboxMonitor {
           acknowledged: false,
           unread: states.get(key.split("~")[0]) ?? null,
           initial,
+          context: next.context,
         }));
-      for (const mail of this.lastArrivals)
+      for (const mail of this.lastArrivals) {
         this.pendingThreads.set(mail.key.split("~")[0], mail.unread);
+        this.pendingContexts.set(mail.key.split("~")[0], next.context);
+      }
       this.history = [...this.lastArrivals, ...this.history].slice(0, 50);
     }
     if (this.pendingThreads.size > 4096) {
       for (const [thread, unread] of this.pendingThreads) {
-        if (unread !== true) this.pendingThreads.delete(thread);
+        if (unread !== true) {
+          this.pendingThreads.delete(thread);
+          this.pendingContexts.delete(thread);
+        }
         if (this.pendingThreads.size <= 2048) break;
       }
     }
@@ -195,6 +250,7 @@ export class InboxMonitor {
     this.attention = false;
     this.pending = 0;
     this.pendingThreads.clear();
+    this.pendingContexts.clear();
     this.history = this.history.map((entry) => ({
       ...entry,
       acknowledged: true,
@@ -207,6 +263,7 @@ export class InboxMonitor {
     this.previous = undefined;
     this.initialized = false;
     this.pendingThreads.clear();
+    this.pendingContexts.clear();
     this.seen.clear();
     this.attention = false;
     this.pending = 0;

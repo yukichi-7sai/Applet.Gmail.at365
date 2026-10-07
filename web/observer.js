@@ -1,6 +1,6 @@
 (() => {
   // Isolated world 1001: no Electron/Node APIs, no IPC, and no authentication code.
-  const slot = "__at365GmailObserverV4";
+  const slot = "__at365GmailObserverV5";
   let state = globalThis[slot];
   if (!state) {
     state = {
@@ -124,7 +124,36 @@
   }
   // An explicit Gmail empty-state marker is needed; unknown DOM is unavailable.
   const empty =
-    rows.length === 0 && [...main.querySelectorAll(".aRv")].some(visible);
+    rows.length === 0 &&
+    ([...main.querySelectorAll(".aRv")].some(visible) ||
+      [...main.querySelectorAll("table.TB tr.TD > td.TC")]
+        .filter(visible)
+        .some((e) =>
+          /^(新着メールはありません。|受信トレイにメールはありません。|No new mail!?|Your inbox is empty\.)$/i.test(
+            text(e.textContent, 200),
+          ),
+        ));
+  // Gmail's range has three numeric spans: first, last, total. Only claim
+  // full coverage when every displayed row was captured, without truncation.
+  const rowsComplete = keys.length === rows.length;
+  const complete =
+    empty ||
+    [...document.querySelectorAll(".Dj")].filter(visible).some((pager) => {
+      const parts = [...pager.querySelectorAll(".ts")].map((e) =>
+        text(e.textContent, 30).replace(/[,\s\u00a0]/g, ""),
+      );
+      if (parts.length !== 3 || parts.some((part) => !/^\d+$/.test(part)))
+        return false;
+      const [first, last, total] = parts.map(Number);
+      return (
+        first === 1 &&
+        Number.isSafeInteger(total) &&
+        total > 0 &&
+        last === total &&
+        total === rows.length &&
+        rowsComplete
+      );
+    });
   state.cache = {
     ...base,
     ready: keys.length > 0 || empty,
@@ -132,6 +161,8 @@
     unread,
     read,
     details,
+    complete,
+    rowsComplete,
     reason: keys.length || empty ? undefined : "no-row-ids",
   };
   // Keep the host observation bounded even for unusual long IDs or multibyte text.
@@ -140,6 +171,8 @@
     keys.length
   ) {
     const key = keys.pop();
+    state.cache.complete = false;
+    state.cache.rowsComplete = false;
     const u = unread.indexOf(key);
     if (u >= 0) unread.splice(u, 1);
     const r = read.indexOf(key);

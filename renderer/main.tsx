@@ -124,8 +124,24 @@ function App() {
       await window.webAccounts.select(id);
       let opened = await window.webAccounts.openItem(id, key);
       if (!opened) {
-        if ((await window.webAccounts.snapshot()).selected !== id) return;
-        await window.webAccounts.navigate("inbox");
+        const currentSnapshot = await window.webAccounts.snapshot();
+        if (currentSnapshot.selected !== id) return;
+        const current = currentSnapshot.accounts.find((a) => a.id === id);
+        const atInbox = current?.url.endsWith("#inbox");
+        setPage("inbox");
+        // A settled inbox has already answered "not found". Reloading it
+        // cannot open a deleted row and needlessly adds network latency.
+        if (!atInbox) await window.webAccounts.navigate("inbox");
+        if (
+          atInbox &&
+          !current?.loading &&
+          (current?.observation as { ready?: boolean } | null)?.ready
+        ) {
+          setNotice(
+            "対象のメールが現在の受信トレイに見つからないため、受信トレイを開きました。",
+          );
+          return;
+        }
         const deadline = Date.now() + 8000;
         while (Date.now() < deadline) {
           const currentSnapshot = await window.webAccounts.snapshot();

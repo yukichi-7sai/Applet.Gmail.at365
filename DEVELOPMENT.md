@@ -39,6 +39,12 @@ Gmail開発profileはハードウェアアクセラレーションをオフに�
 
 ## 構成と設計
 
+0.4.3のobserverは、実Gmailの`table.TB tr.TD > td.TC`の明示的な空状態も認識します。空の受信トレイでもready:trueを返すため、keepActiveの初期化と最後の削除の反映を継続できます。`.Dj .ts`の開始/終了/総数が1/総数/総数で、可視行と全識別子が一致する場合だけcomplete:trueとします。切り詰め・ID不明行はcomplete/rowsCompleteをfalseにし、全件を見た根拠にしません。
+
+履歴にはcontextを付け、pendingContextsは50件の履歴上限とは独立して保持します。同じcontextのcompleteな一覧にないスレッドを履歴/件数から除去します。部分一覧では、同じ文書/contextで識別済みの可視行がすべて取得でき、共有行の順序が保たれた場合だけ、残っている下側の行より前の消失を除去します。境界から押し出された行、カテゴリ変更、未知の空状態、ID不明行は消失と断定しません。削除とアーカイブの区別はしません。復元だけで同じメールを再通知しません。
+
+openItemがfalseでも、読み込み済みの受信トレイがreadyならnavigateを呼ばず直ちに案内します。受信トレイで更新中ならそのまま待ち、別フォルダー/本文からのみ受信トレイへ移動します。待機中も受信トレイ画面を表示します。正常に開く操作はopenItem完了後に表示を切り替えます。`test-ui-features.cjs`は実配布ホストで削除直後のクリックが2500ms未満・再ロードなし、最後の行の削除、日英の空状態、全件範囲/ページ範囲/ID不明の判定を確認します。
+
 0.4.2はAppDock 0.15.2を必要とします。WindowsのNativeWinOcclusionと、Gmailページ自身のアクティブ状態を別々に対処します。manifestのkeepActive:trueは、observeOriginのobserverがready:trueを返した後にChromiumのEmulation.setFocusEmulationEnabledを適用します。DOMが準備済みでも受信処理の初期化は遅れるため、背景では30秒ごとに250msだけ解除して再適用し、同期開始・再開を促します。Windowsのフォーカスや選択アカウントは変えず、native focusがあるWebContentsではエミュレーションを解除して通常のfocus/blurを使います。同一文書のhash/history移動では状態を保ち、別文書への移動・認証・破棄ではタイマーと接続を解除します。
 
 Playwrightは対象ページへ自動でfocus emulationを設定するため、rAF/paint/背景更新の試験だけでは通常起動の停止を見逃す場合があります。scripts/test-native-background.cjsはPlaywrightを使わず、DOMの準備完了より遅れて受信処理を初期化する2枠で、未表示更新・未読件数・hash/history移動・reload・認証時解除を確認します。--beforeは背景描画設定/keepActiveを外して更新開始の不足を確認、--packed-coreは発行したapp.asar内の実装を使用します。scripts/probe-native-startup.cjsは保存済み開発profileを通常起動して主プロセスのローカルInspectorだけから件数を記録します。--duration=30000で短い確認、--manualで自動終了なしの継続確認ができます。終了はstartup-action.jsonへJSON文字列のquitを指定し、親プロセスの強制停止を通常終了の代わりに使いません。Inspector接続先は開発profile内のstartup-inspector.txtへ一時保存し、終了時に削除します。Rendererへテストツールのfocus overrideは追加しません。
@@ -63,7 +69,7 @@ test-ui-featuresはテーマの即時同期、設定のバージョンページ�
 
 0.2.1の未読/既読は受信トレイ行の`zE`/`yO`で判定し、どちらもない場合は未確認とします。`unread`と`read`は互いに重ならない識別子一覧で、本文を開いて状態を調べたり、既読に変更したりはしません。Gmailの[会話表示](https://support.google.com/mail/answer/5900?co=GENIE.Platform%3DDesktop&hl=ja)では行がスレッドに対応するため、個別メッセージの未読数とは区別します。
 
-`InboxMonitor`は初回の未読を新着に取り込みます。`Arrival`に`unread: boolean | null`と`initial`を持たせ、同じスレッドの履歴を現在の行状態へ同期します。未クリアの新着を履歴の50件上限とは別のMapで管理し、確認できた未読スレッドだけをpendingへ計上します。新しい返信でも同じスレッドは1件。見えなくなった行は未確認、画面が非受信トレイの間は直前の件数を維持します。Mapも4096件を目安に非未読の古い項目を整理します。
+`InboxMonitor`は初回の未読を新着に取り込みます。`Arrival`に`unread: boolean | null`と`initial`を持たせ、同じスレッドの履歴を現在の行状態へ同期します。未クリアの新着を履歴の50件上限とは別のMapで管理し、確認できた未読スレッドだけをpendingへ計上します。新しい返信でも同じスレッドは1件。0.4.3では確認範囲からの消失を履歴と件数から除去し、それ以外の見えなくなった行は未確認、画面が非受信トレイの間は直前の件数を維持します。Mapも4096件を目安に非未読の古い項目を整理します。
 
 通知は`notificationArrivals`の未読だけに限定します。既読/未読の変更だけで通知し直さず、クリア済みのスレッドは新しい返信等を検知するまで件数へ戻しません。同一起動中の再読込やフォルダー復帰は既存未読を再通知せず、監視OFF/ON・Applet再起動は初回取り込みをやり直します。確認範囲は受信トレイ先頭ページの可視行のみです。
 
