@@ -1,6 +1,118 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { activate, deactivate } = require("../out/index");
+
+test("account sounds are independent of desktop notifications and cycle commands keep stable IDs", async () => {
+  let tick;
+  const sounds = [],
+    commands = new Map(),
+    cycles = [],
+    notices = [];
+  const observation = (keys, unread) => ({
+    ready: true,
+    context: "inbox",
+    document: "one",
+    revision: 1,
+    keys,
+    unread,
+    read: keys.filter((key) => !unread.includes(key)),
+  });
+  const accounts = [
+    {
+      id: "one",
+      name: "One",
+      error: "",
+      sound: { enabled: true, file: "C:\\fixture\\one.wav" },
+      observation: observation(["a"], []),
+    },
+    {
+      id: "two",
+      name: "Two",
+      error: "",
+      sound: { enabled: false, file: "C:\\fixture\\two.wav" },
+      observation: observation(["a"], []),
+    },
+  ];
+  let enabled = true,
+    notifications = false;
+  const context = {
+    commands: {
+      register(id, title, handler) {
+        commands.set(id, handler);
+      },
+    },
+    webAccounts: {
+      async start() {},
+      async open() {},
+      async cycle(direction) {
+        cycles.push(direction);
+      },
+      async read() {
+        return { accounts, acknowledged: [] };
+      },
+      async report() {},
+    },
+    audio: {
+      async play(file) {
+        sounds.push(file);
+      },
+    },
+    tray: { add() {}, async attention() {} },
+    ui: { async showPanel() {} },
+    notifications: {
+      async show(...args) {
+        notices.push(args);
+      },
+    },
+    settings: {
+      get: (key, fallback) =>
+        key === "monitoring"
+          ? enabled
+          : key === "notifications"
+            ? notifications
+            : fallback,
+      onChanged() {},
+    },
+    scheduler: {
+      every(ms, handler) {
+        tick = handler;
+        return () => {};
+      },
+    },
+    log: {
+      async error(message) {
+        throw Error(message);
+      },
+    },
+  };
+  try {
+    await activate(context);
+    await commands.get("at365.gmail.nextAccount")();
+    await commands.get("at365.gmail.previousAccount")();
+    assert.deepEqual(cycles, [1, -1]);
+    for (const account of accounts)
+      account.observation = observation(["new", "a"], ["new"]);
+    await tick();
+    assert.deepEqual(sounds, ["C:\\fixture\\one.wav"]);
+    assert.equal(notices.length, 0);
+    accounts[0].sound.enabled = false;
+    accounts[1].sound.enabled = true;
+    notifications = true;
+    for (const account of accounts)
+      account.observation = observation(["next", "new", "a"], ["next", "new"]);
+    await tick();
+    assert.deepEqual(sounds, ["C:\\fixture\\one.wav", "C:\\fixture\\two.wav"]);
+    assert.equal(notices.length, 2);
+    assert.ok(notices.every((notice) => notice[2].silent === true));
+    await tick();
+    assert.equal(sounds.length, 2);
+    enabled = false;
+    await tick();
+    assert.equal(sounds.length, 2);
+  } finally {
+    await deactivate();
+  }
+});
 test("runtime reports arrivals and keeps notification metadata opt-in; settings changes do not erase baseline", async () => {
   let tick,
     onChanged,
@@ -17,8 +129,8 @@ test("runtime reports arrivals and keeps notification metadata opt-in; settings 
     commands: { register() {} },
     tray: { add() {}, async attention() {} },
     notifications: {
-      async show(title, body) {
-        notifications.push({ title, body });
+      async show(title, body, options) {
+        notifications.push({ title, body, options });
       },
     },
     ui: { async showPanel() {} },
@@ -75,6 +187,7 @@ test("runtime reports arrivals and keeps notification metadata opt-in; settings 
     observation = o(["new", "old"], ["new"]);
     await tick();
     assert.equal(notifications.length, 1);
+    assert.equal(notifications[0].options.silent, true);
     assert.equal(notifications[0].body, "未読の新着を 1 件検知しました。");
     assert.equal(
       reports.at(-1).data.arrivals[0].subject,

@@ -31,6 +31,10 @@ function App() {
   const [snapshot, setSnapshot] = useState<WebAccountSnapshot>();
   const [page, setPage] = useState<Page>("inbox");
   const [scope, setScope] = useState<"all" | "selected">("all");
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [query, setQuery] = useState("");
+  const [notice, setNotice] = useState("");
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const [error, setError] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,6 +51,11 @@ function App() {
   }, []);
   const account = snapshot?.accounts.find((a) => a.id === snapshot.selected);
   useEffect(() => setName(account?.name ?? ""), [account?.id, account?.name]);
+  useEffect(() => setNotice(""), [account?.id]);
+  useEffect(
+    () => setSoundEnabled(account?.sound.enabled ?? false),
+    [account?.id, account?.sound.enabled],
+  );
   useLayoutEffect(() => {
     const element = viewport.current;
     if (!element) return;
@@ -75,6 +84,7 @@ function App() {
     working.current = true;
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       await action();
       await load();
@@ -93,6 +103,48 @@ function App() {
       mailData(a).arrivals.map((mail) => ({ ...mail, account: a })),
     )
     .sort((a, b) => b.detectedAt - a.detectedAt);
+  const search = query.trim().normalize("NFKC").toLocaleLowerCase("ja-JP");
+  const shown = arrivals.filter(
+    (mail) =>
+      (!unreadOnly || mail.unread === true) &&
+      (!search ||
+        [mail.sender, mail.subject, mail.account.name].some((text) =>
+          text.normalize("NFKC").toLocaleLowerCase("ja-JP").includes(search),
+        )),
+  );
+  const scopePending = accounts
+    .filter((a) => scope === "all" || a.id === account?.id)
+    .reduce((total, a) => total + mailData(a).pending, 0);
+  const openMail = (id: string, key: string) =>
+    run(async () => {
+      await window.webAccounts.select(id);
+      let opened = await window.webAccounts.openItem(id, key);
+      if (!opened) {
+        if ((await window.webAccounts.snapshot()).selected !== id) return;
+        await window.webAccounts.navigate("inbox");
+        const deadline = Date.now() + 8000;
+        while (Date.now() < deadline) {
+          const currentSnapshot = await window.webAccounts.snapshot();
+          if (currentSnapshot.selected !== id) return;
+          const current = currentSnapshot.accounts.find((a) => a.id === id);
+          if (
+            current?.observation &&
+            (current.observation as { ready?: boolean }).ready &&
+            !current.loading
+          ) {
+            opened = await window.webAccounts.openItem(id, key);
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+      }
+      if ((await window.webAccounts.snapshot()).selected !== id) return;
+      setPage("inbox");
+      if (!opened)
+        setNotice(
+          "対象のメールが現在の受信トレイに見つからないため、受信トレイを開きました。",
+        );
+    });
   const clear = () =>
     run(async () => {
       for (const a of accounts.filter(
@@ -138,6 +190,25 @@ function App() {
         <div className="section">
           <span>アカウント</span>
           <span>{accounts.length} / 10</span>
+        </div>
+        <div className="account-switcher">
+          <button
+            aria-label="前のアカウント"
+            title="前のアカウント（初期設定: Ctrl+Shift+Tab）"
+            disabled={busy || accounts.length < 2}
+            onClick={() => void run(() => window.webAccounts.cycle(-1))}
+          >
+            ←
+          </button>
+          <span>アカウント切替</span>
+          <button
+            aria-label="次のアカウント"
+            title="次のアカウント（初期設定: Ctrl+Tab）"
+            disabled={busy || accounts.length < 2}
+            onClick={() => void run(() => window.webAccounts.cycle(1))}
+          >
+            →
+          </button>
         </div>
         <nav className="accounts" aria-label="アカウント一覧">
           {accounts.map((a, i) => (
@@ -261,6 +332,7 @@ function App() {
                 }
               />
               {error ||
+                notice ||
                 account?.error ||
                 (account?.loading
                   ? "Googleのページを読み込んでいます…"
@@ -278,7 +350,10 @@ function App() {
               </p>
             </div>
             {page === "arrivals" && (
-              <button disabled={busy || !pending} onClick={() => void clear()}>
+              <button
+                disabled={busy || !scopePending}
+                onClick={() => void clear()}
+              >
                 新着表示をクリア
               </button>
             )}
@@ -325,29 +400,80 @@ function App() {
                       {account?.name || "選択中"}
                     </button>
                   </div>
-                  <span>{arrivals.length} 件の履歴</span>
+                  <span>{scopePending} 件の未読新着</span>
+                </div>
+                <div className="list-controls">
+                  <label className="unread-filter">
+                    <input
+                      type="checkbox"
+                      checked={unreadOnly}
+                      onChange={(e) => setUnreadOnly(e.target.checked)}
+                    />
+                    未読だけ
+                  </label>
+                  <div className="history-search">
+                    <input
+                      type="search"
+                      aria-label="新着履歴を検索"
+                      placeholder="送信元・件名・アカウント名で検索"
+                      value={query}
+                      maxLength={200}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                    {query && (
+                      <button
+                        aria-label="検索をクリア"
+                        onClick={() => setQuery("")}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  <span className="history-count" role="status">
+                    {shown.length} / {arrivals.length} 件の履歴
+                  </span>
                 </div>
                 <p className="list-note">
                   件数は未読の新着スレッド数です。起動時の未読も含みます。履歴は各アカウントの最大50件を保持します。
                 </p>
-                {arrivals.length === 0 ? (
+                {shown.length === 0 ? (
                   <div className="empty history-empty">
                     <span className="empty-icon" aria-hidden="true">
                       ✉
                     </span>
-                    <h2>新着を待っています</h2>
+                    <h2>
+                      {arrivals.length
+                        ? "一致する履歴はありません"
+                        : "新着を待っています"}
+                    </h2>
                     <p>
-                      受信トレイを表示している間の新着が、ここに並びます。
-                      <br />
-                      起動時に確認できた未読も新着として取り込みます。
+                      {arrivals.length ? (
+                        "検索条件や未読の絞り込みを変更してください。"
+                      ) : (
+                        <>
+                          受信トレイを表示している間の新着が、ここに並びます。
+                          <br />
+                          起動時に確認できた未読も新着として取り込みます。
+                        </>
+                      )}
                     </p>
+                    {arrivals.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setQuery("");
+                          setUnreadOnly(false);
+                        }}
+                      >
+                        絞り込みを解除
+                      </button>
+                    )}
                     <button onClick={() => setPage("inbox")}>
                       受信トレイを開く
                     </button>
                   </div>
                 ) : (
                   <ol className="arrival-list">
-                    {arrivals.map((mail) => (
+                    {shown.map((mail) => (
                       <li
                         key={mail.account.id + ":" + mail.key}
                         className={
@@ -394,16 +520,10 @@ function App() {
                           <button
                             disabled={busy}
                             onClick={() =>
-                              void run(async () => {
-                                await window.webAccounts.select(
-                                  mail.account.id,
-                                );
-                                await window.webAccounts.navigate("inbox");
-                                setPage("inbox");
-                              })
+                              void openMail(mail.account.id, mail.key)
                             }
                           >
-                            受信トレイへ →
+                            メールを開く →
                           </button>
                         </div>
                       </li>
@@ -475,6 +595,79 @@ function App() {
                       最後の枠は残します。ログアウトはGmail画面から操作してください。
                     </p>
                   )}
+                </section>
+                <section className="settings-card">
+                  <h2>このアカウントの通知音</h2>
+                  <p>
+                    未読の新着を検知したときの音です。Windowsの通知設定やAppDockの新着通知がOFFでも、ここでONにすると鳴ります。
+                  </p>
+                  <label className="sound-toggle">
+                    <input
+                      type="checkbox"
+                      aria-label="このアカウントの通知音を鳴らす"
+                      disabled={busy || !account}
+                      checked={soundEnabled}
+                      onChange={(e) => {
+                        const enabled = e.currentTarget.checked;
+                        setSoundEnabled(enabled);
+                        void run(async () => {
+                          try {
+                            await window.webAccounts.setSound(account!.id, {
+                              ...account!.sound,
+                              enabled,
+                            });
+                          } catch (error) {
+                            setSoundEnabled(account!.sound.enabled);
+                            throw error;
+                          }
+                        });
+                      }}
+                    />
+                    このアカウントの通知音を鳴らす
+                  </label>
+                  <div className="sound-file">
+                    <span title={account?.sound.file || "標準のビープ音"}>
+                      {account?.sound.file
+                        ? account.sound.file.split(/[\\/]/).at(-1)
+                        : "標準のビープ音"}
+                    </span>
+                    <button
+                      disabled={busy || !account}
+                      onClick={() =>
+                        void run(() =>
+                          window.webAccounts.pickSound(account!.id),
+                        )
+                      }
+                    >
+                      WAVを選択
+                    </button>
+                    <button
+                      disabled={busy || !account?.sound.file}
+                      onClick={() =>
+                        void run(() =>
+                          window.webAccounts.setSound(account!.id, {
+                            ...account!.sound,
+                            file: "",
+                          }),
+                        )
+                      }
+                    >
+                      標準音に戻す
+                    </button>
+                    <button
+                      disabled={busy || !account}
+                      onClick={() =>
+                        void run(() =>
+                          window.webAccounts.testSound(account!.id),
+                        )
+                      }
+                    >
+                      試聴
+                    </button>
+                  </div>
+                  <p className="hint">
+                    設定はこのアカウントへ保存します。試聴は通知音がOFFでも再生できます。WAVファイルは移動せずに保持してください。
+                  </p>
                 </section>
                 <section className="settings-card">
                   <h2>監視と通知</h2>

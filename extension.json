@@ -3,15 +3,17 @@
   "id": "at365.gmail",
   "name": "Applet.Gmail.at365",
   "displayName": "Gmail",
-  "version": "0.2.2",
-  "minimumHostVersion": "0.13.1",
+  "version": "0.3.0",
+  "minimumHostVersion": "0.14.0",
   "runtime": "node",
   "entry": "index.js",
   "description": "アカウントごとのGmail Web画面と新着の検知",
-  "capabilities": ["web-accounts", "ui", "settings", "notifications", "tray-attention"],
+  "capabilities": ["web-accounts", "ui", "settings", "notifications", "tray-attention", "audio", "file-dialog"],
   "commands": [
     { "id": "at365.gmail.open", "title": "Gmailを開く", "activateOnExecute": true },
-    { "id": "at365.gmail.acknowledge", "title": "新着表示をクリア" }
+    { "id": "at365.gmail.acknowledge", "title": "新着表示をクリア" },
+    { "id": "at365.gmail.nextAccount", "title": "次のアカウント" },
+    { "id": "at365.gmail.previousAccount", "title": "前のアカウント" }
   ],
   "settings": [
     { "key": "monitoring", "title": "新着の監視", "type": "boolean", "default": true },
@@ -23,6 +25,7 @@
     "origins": ["https://mail.google.com", "https://accounts.google.com", "https://accounts.google.co.jp", "https://accounts.youtube.com", "https://myaccount.google.com", "https://workspace.google.com"],
     "observeOrigin": "https://mail.google.com",
     "ui": "web/index.html",
-    "observer": "web/observer.js"
+    "observer": "web/observer.js",
+    "itemOpener": "web/open-item.js"
   }
 }

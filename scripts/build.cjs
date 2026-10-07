@@ -48,8 +48,6 @@ fs.rmSync(webTarget, { recursive: true, force: true });
 fs.cpSync(path.join(root, "dist"), webTarget, {
   recursive: true,
 });
-fs.copyFileSync(
-  path.join(root, "web", "observer.js"),
-  path.join(target, "web", "observer.js"),
-);
+for (const name of ["observer.js", "open-item.js"])
+  fs.copyFileSync(path.join(root, "web", name), path.join(target, "web", name));
 console.log("Published: " + target);

@@ -39,6 +39,14 @@ Gmail開発profileはハードウェアアクセラレーションをオフに�
 
 ## 構成と設計
 
+0.3.0はAppDock 0.14.0の`openItem`、`cycle`、アカウント別sound、ウィンドウ状態保存を使います。`web/open-item.js`は明示的なローカルUI操作でのみ実行する関数式です。observerと同じisolated world 1001にJSON文字列のkeyを渡し、可視受信トレイ行をスレッドIDで探して件名部分をクリックします。Gmailの非公開URLを組み立てず、見つからない場合はfalseを返してUIが受信トレイへ案内します。対象が他フォルダー/本文中なら一度受信トレイへ移り、観測がreadyになるまで最大8秒待って再試行します。メールを開くとGmail自身が既読にする場合があります。クリア操作とは独立しています。
+
+通知音はホストのアカウントsoundをreadで受け取り、`notificationArrivals`がある場合だけ`audio.play`を呼びます。デスクトップ通知の設定とは別条件で、toastには常にsilent:trueを指定します。WAV選択にはfile-dialog、設定/試聴/再生にはaudio capabilityが必要です。ホストの既存queueSoundを再利用し、UIやGmailページへ任意のファイル読み取り/Host APIを公開しません。初期値はenabled:false/file:""。soundはaccounts.json、位置・サイズはWindowStateStoreでwindow-state.jsonへ保存します。
+
+`nextAccount`/`previousAccount`は安定した宣言コマンドでNodeから`webAccounts.cycle(1|-1)`を呼びます。ホストの既定shortcutへCtrl+Tab/Ctrl+Shift+Tabを追加し、ローカルUIとremote WebContentsのbefore-input-eventで自身のAppletの登録済みコマンドだけを実行します。利用者のキー変更/空配列を優先し、global指定済みのコマンドは重複実行を避けます。
+
+`scripts/test-ui-features.cjs`はオフライン2アカウントで検索/未読絞り込み、同一IDのセッション別メールを開く操作、消えたメールの案内、Web画面/ローカル画面の既定キーとキー変更、音の独立ON/OFF・WAV選択/試聴・再起動保持、通常の位置/サイズと最大化復元を確認します。音声は無音WAV、実メールは使いません。発行版EXEを引数にできます。
+
 0.2.2はAppDock 0.13.1の背景表示保持を必要とします。旧方式では非選択Viewを非表示・切り離しており、backgroundThrottling=falseでもrequestAnimationFrameが止まりました。新ホストは1つの非表示BrowserWindowに非選択Viewを可視・実寸で保持し、選択中だけ操作ウィンドウへ移します。Gmailのページを改変して可視性を偽装したり、フォーカスを順番に奪ったり、定期再読み込みしたりはしません。
 
 `scripts/probe-visibility.cjs`は実アカウントを使わず、切り離し/非表示・重ね表示・一度も見せない親WindowでrAF/IntersectionObserverを比較します。`scripts/test-background.cjs`はオフラインHTTPS fixtureの状態を別の場所から更新し、ページ自身がfetch→rAFでDOMへ反映します。単にテスト側からDOMを直接書き換える検証とは区別し、初回未選択・非選択・新着一覧・×で非表示・最小化・停止を確認します。引数に発行win-unpacked EXEを指定できます。`check-live.cjs`も実Gmailを新着一覧の背景へ移し、メール状態を書き換えずrAFの応答を診断します。

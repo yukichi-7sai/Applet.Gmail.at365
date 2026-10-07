@@ -40,6 +40,57 @@ delete env.ELECTRON_RUN_AS_NODE;
       if (data.accounts.some((a) => a.observation?.ready)) break;
       await new Promise((r) => setTimeout(r, 500));
     }
+    let readItemCheck = null;
+    if (process.argv.includes("--open-read-item")) {
+      // Development-only: open an already-read row and immediately return.
+      // Never select an unread row or extract the message body/URL identifier.
+      const account = data.accounts.find(
+        (a) => a.observation?.ready && a.observation.read?.length,
+      );
+      if (account) {
+        const key = account.observation.read.find((key) =>
+          account.observation.details?.some(
+            (detail) => detail.key === key && detail.subject,
+          ),
+        );
+        if (key) {
+          const dispatched = await ui.evaluate(
+            ({ id, key }) => window.webAccounts.openItem(id, key),
+            { id: account.id, key },
+          );
+          let navigated = false;
+          const openDeadline = Date.now() + 4000;
+          while (Date.now() < openDeadline) {
+            const current = await ui.evaluate(() =>
+              window.webAccounts.snapshot(),
+            );
+            const selected = current.accounts.find((a) => a.id === account.id);
+            if (
+              selected &&
+              new URL(selected.url).origin === "https://mail.google.com" &&
+              new URL(selected.url).hash !== "#inbox"
+            ) {
+              navigated = true;
+              break;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+          readItemCheck = { dispatched, navigated, onlyAlreadyRead: true };
+          await ui.evaluate(() => window.webAccounts.navigate("inbox"));
+          const returnDeadline = Date.now() + 15000;
+          while (Date.now() < returnDeadline) {
+            data = await ui.evaluate(() => window.webAccounts.snapshot());
+            if (
+              data.accounts.some(
+                (a) => a.id === account.id && a.observation?.ready,
+              )
+            )
+              break;
+            await new Promise((resolve) => setTimeout(resolve, 300));
+          }
+        }
+      }
+    }
     // Temporarily show the local history tab; Gmail itself stays in the background.
     await ui.getByRole("button", { name: /^新着一覧/ }).click();
     const diagnostics = await app.evaluate(async ({ webContents }) => {
@@ -63,6 +114,7 @@ delete env.ELECTRON_RUN_AS_NODE;
     });
     const result = {
       loginRetained: data.accounts.some((a) => a.observation?.ready === true),
+      readItemCheck,
       accounts: data.accounts.map((a) => ({
         loading: a.loading,
         error: a.error,

@@ -350,6 +350,82 @@ h1 {
   display: flex;
   gap: 6px;
 }
+.account-switcher {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 14px 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.account-switcher button {
+  padding: 5px 12px;
+}
+.sound-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 14px;
+}
+.sound-toggle input {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+.sound-file {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.sound-file span {
+  flex: 1;
+  min-width: 160px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+.sound-file button {
+  font-size: 11px;
+}
+.list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+.unread-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  white-space: nowrap;
+}
+.unread-filter input {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+.history-search {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 240px;
+  gap: 6px;
+}
+.history-search input {
+  min-width: 0;
+  width: 100%;
+  font-size: 12px;
+}
+.history-search button {
+  padding: 7px 10px;
+}
+.history-count {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
 .filters button {
   background: transparent;
   font-size: 12px;

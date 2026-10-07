@@ -336,7 +336,7 @@ async function launch(startupUnread = false) {
           exact: true,
         }),
       })
-      .getByRole("button", { name: "受信トレイへ →", exact: true })
+      .getByRole("button", { name: "メールを開く →", exact: true })
       .click();
     await until(
       async () =>

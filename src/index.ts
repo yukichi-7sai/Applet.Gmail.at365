@@ -4,6 +4,7 @@ interface Account {
   name: string;
   observation: unknown;
   error: string;
+  sound?: { enabled: boolean; file: string };
 }
 interface Context {
   commands: {
@@ -12,6 +13,7 @@ interface Context {
   webAccounts: {
     start(): Promise<unknown>;
     open(): Promise<unknown>;
+    cycle(direction: 1 | -1): Promise<unknown>;
     read(): Promise<{ accounts: Account[]; acknowledged: string[] }>;
     report(
       id: string,
@@ -31,6 +33,7 @@ interface Context {
       options?: { silent?: boolean; command?: string },
     ): Promise<unknown>;
   };
+  audio: { play(file?: string): Promise<unknown> };
   ui: { showPanel(panel: unknown): Promise<unknown> };
   settings: {
     get<T>(key: string, fallback: T): T;
@@ -83,26 +86,35 @@ async function tick() {
       }
       if (data.acknowledged.includes(a.id)) monitor.acknowledge();
       if (!enabled) monitor.reset();
-      else if (
-        monitor.observe(a.observation) &&
-        context.settings.get("notifications", true)
-      )
-        await context.notifications.show(
-          "Gmail — " + a.name,
-          context.settings.get("notificationDetails", false)
-            ? monitor.notificationArrivals
-                .slice(0, 3)
-                .map(
-                  (mail) =>
-                    `${mail.sender || "送信元を取得できません"}：${mail.subject || "件名を取得できません"}`,
-                )
-                .join("\n") +
-                (monitor.notificationArrivals.length > 3
-                  ? `\nほか ${monitor.notificationArrivals.length - 3} 件`
-                  : "")
-            : `未読の新着を ${monitor.notificationArrivals.length} 件検知しました。`,
-          { command: ID + ".open" },
-        );
+      else {
+        const arrived = monitor.observe(a.observation);
+        if (arrived && a.sound?.enabled) {
+          try {
+            await context.audio.play(a.sound.file);
+          } catch {
+            await context.log.error(
+              "通知音を再生できません。WAVファイルを確認してください。",
+            );
+          }
+        }
+        if (arrived && context.settings.get("notifications", true))
+          await context.notifications.show(
+            "Gmail — " + a.name,
+            context.settings.get("notificationDetails", false)
+              ? monitor.notificationArrivals
+                  .slice(0, 3)
+                  .map(
+                    (mail) =>
+                      `${mail.sender || "送信元を取得できません"}：${mail.subject || "件名を取得できません"}`,
+                  )
+                  .join("\n") +
+                  (monitor.notificationArrivals.length > 3
+                    ? `\nほか ${monitor.notificationArrivals.length - 3} 件`
+                    : "")
+              : `未読の新着を ${monitor.notificationArrivals.length} 件検知しました。`,
+            { command: ID + ".open", silent: true },
+          );
+      }
       if (!active) return;
       await context.webAccounts.report(
         a.id,
@@ -129,6 +141,12 @@ export async function activate(c: Context) {
   context = c;
   active = true;
   c.commands.register(ID + ".open", "Gmailを開く", () => c.webAccounts.open());
+  c.commands.register(ID + ".nextAccount", "次のアカウント", () =>
+    c.webAccounts.cycle(1),
+  );
+  c.commands.register(ID + ".previousAccount", "前のアカウント", () =>
+    c.webAccounts.cycle(-1),
+  );
   c.commands.register(ID + ".acknowledge", "新着表示をクリア", async () => {
     for (const monitor of monitors.values()) monitor.acknowledge();
     await tick();

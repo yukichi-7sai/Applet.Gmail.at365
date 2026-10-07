@@ -1,5 +1,17 @@
 # 検証記録
 
+## 2026-10-07: 0.3.0 一覧の操作・位置保存・切替コマンド・個別通知音
+
+- 新着一覧に未読だけの絞り込み、送信元/件名/アカウント名のNFKC・大小文字を吸収する検索、表示件数とアカウント範囲の未読新着数を追加。絞り込みで新着数/クリア範囲を変えない。項目を開く操作は該当セッションを選び、実際の受信トレイ行の件名をクリックする。非公開のthread URLを生成せず、見つからない場合は受信トレイへ案内する。
+- AppDock 0.14.0へ共通itemOpener/cycle、ローカルUIのアカウント別sound選択/設定/試聴、WindowStateStoreによる位置/サイズ/最大化保存を追加。Gmailの最低ホスト版は0.14.0。次/前の安定したコマンドIDを追加し、既定Ctrl+Tab/Ctrl+Shift+TabはWeb画面とローカル画面双方へ適用。キー変更/空配列を保持し、global指定時の二重実行を避ける。
+- 通知音は初期OFFで枠ごとに保存。デスクトップ通知とは独立した条件でaudio.playを呼び、Windows通知自身はsilent:true。未読新着と起動時未読だけ、1アカウントの1更新につき1回。監視OFF/音OFF/状態だけの変更は再生しない。WAV選択は取消で変更せず、試聴/標準音へ戻す操作を提供。
+- main/renderer型検査・Vite・Gmail回帰15/15、ホスト回帰77/77成功。追加の音パス上限/制御文字/JSON引数のコード注入境界と、10枠の観測＋長い多バイト音パスでも1MB RPC内であることを再検証。回帰はWindows通知の無効時も選んだアカウントの音だけが呼ばれること、toastがsilent、安定したコマンドIDを確認。
+- 配布win-unpacked版の追加GUI: `artifacts/ui-features-1791382644378/result.json`。同じthread IDを持つ2枠の正しいメールを開く操作、消えたメールの案内、検索/未読絞り込み、Web/ローカル画面のキーと変更後のCtrl+PageDown、循環コマンド/ボタン、WAV選択/試聴/標準音/OFF・再起動保持を確認。ホスト/Applet双方の通知OFFでも、音ONの枠だけ実音声プレーヤーが起動。無音PCM WAVを使い、再生/位置保存のエラーログなし。1050×760の通常枠と最大化を再起動復元し、900×640で通知音操作が横にはみ出さないことを確認。`sound-minimum.png`/`arrivals-wide.png`を目視確認。
+- 既存の配布版GUI: `artifacts/gui-1791382808256/result.json`。未読件数/履歴、背景監視、アカウントCookie分離/再起動保持/削除、停止/再開、remote権限制限が成功。背景描画: `artifacts/background-1791382726283/result.json`（未選択・一覧の裏・トレイ非表示・最小化・停止）。単一EXEと未改変Applet: `artifacts/portable-1791382860793/result.json`（version 0.14.0、exitCode 0）。
+- 統合試験の最初の失敗は、Playwright主プロセスでrequireが使えない点、制御されたチェックボックスの非同期反映、再起動時のfixture登録前のApplet有効化、消えたメールを消していないfixture、旧GUIのボタン名によるもの。主プロセスモジュールを差し替えず実プレーヤー生成を観測し、音ON/OFFを楽観反映＋失敗時復帰に変更。再起動前のテスト用無効化とfixture/操作名の修正後に上記が成功。
+- ユーザーが開発用AppDockを完全終了後、既存profileを更新。実Gmailは認証保持/GPUオフ、既読7/未読0・新着0。`check-live.cjs --open-read-item`で既読と確認済みの行だけを開き、実Gmailの画面移動を確認して受信トレイへ戻した。本文/URL識別子/認証値は出力せず、未読のメールは操作していない。実データ上は2枠あり、受信トレイのDOM確認はログイン済みの1枠。裏側のrAF継続も確認。記録: `artifacts/gmail-dev/live-result.json`。実新着による音の聞こえ方・別ブラウザーからの状態変更/実受信の背景同期・実複数アカウント・スリープ/長時間常駐は未確認。
+- 最終ホストEXE: 100,441,648 bytes、SHA256 `B13FD8556362975E7100DB443DC8C3FA50AF66F955CA4E2A8D329B5008F42B05`。.NETはframework-dependentクリーン発行でRuntime混入なし。開発用publish/extensionsへ配置して全ファイルSHA256を照合。実利用先への配置・外部pushは行っていない。
+
 ## 2026-10-07: 0.2.2 背景のGmail描画継続（AppDock 0.13.1）
 
 - ユーザーが0.2.1の未読だけの新着集計を確認。「監視処理は動いていたが、非アクティブのGmail側が止まっていた」と補足。オフラインの`probe-visibility.cjs`で、native非表示/未接続のWebContentsViewではdocument.visibilityStateがvisibleでもrequestAnimationFrameが停止することを確認。非表示の背景BrowserWindowへViewをvisible・実サイズで接続すると継続する。記録: `artifacts/visibility-1791372924502/result.json`。
