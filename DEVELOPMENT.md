@@ -39,6 +39,10 @@ Gmail開発profileはハードウェアアクセラレーションをオフに�
 
 ## 構成と設計
 
+0.2.2はAppDock 0.13.1の背景表示保持を必要とします。旧方式では非選択Viewを非表示・切り離しており、backgroundThrottling=falseでもrequestAnimationFrameが止まりました。新ホストは1つの非表示BrowserWindowに非選択Viewを可視・実寸で保持し、選択中だけ操作ウィンドウへ移します。Gmailのページを改変して可視性を偽装したり、フォーカスを順番に奪ったり、定期再読み込みしたりはしません。
+
+`scripts/probe-visibility.cjs`は実アカウントを使わず、切り離し/非表示・重ね表示・一度も見せない親WindowでrAF/IntersectionObserverを比較します。`scripts/test-background.cjs`はオフラインHTTPS fixtureの状態を別の場所から更新し、ページ自身がfetch→rAFでDOMへ反映します。単にテスト側からDOMを直接書き換える検証とは区別し、初回未選択・非選択・新着一覧・×で非表示・最小化・停止を確認します。引数に発行win-unpacked EXEを指定できます。`check-live.cjs`も実Gmailを新着一覧の背景へ移し、メール状態を書き換えずrAFの応答を診断します。
+
 0.2.1の未読/既読は受信トレイ行の`zE`/`yO`で判定し、どちらもない場合は未確認とします。`unread`と`read`は互いに重ならない識別子一覧で、本文を開いて状態を調べたり、既読に変更したりはしません。Gmailの[会話表示](https://support.google.com/mail/answer/5900?co=GENIE.Platform%3DDesktop&hl=ja)では行がスレッドに対応するため、個別メッセージの未読数とは区別します。
 
 `InboxMonitor`は初回の未読を新着に取り込みます。`Arrival`に`unread: boolean | null`と`initial`を持たせ、同じスレッドの履歴を現在の行状態へ同期します。未クリアの新着を履歴の50件上限とは別のMapで管理し、確認できた未読スレッドだけをpendingへ計上します。新しい返信でも同じスレッドは1件。見えなくなった行は未確認、画面が非受信トレイの間は直前の件数を維持します。Mapも4096件を目安に非未読の古い項目を整理します。

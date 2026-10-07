@@ -40,6 +40,8 @@ delete env.ELECTRON_RUN_AS_NODE;
       if (data.accounts.some((a) => a.observation?.ready)) break;
       await new Promise((r) => setTimeout(r, 500));
     }
+    // Temporarily show the local history tab; Gmail itself stays in the background.
+    await ui.getByRole("button", { name: /^新着一覧/ }).click();
     const diagnostics = await app.evaluate(async ({ webContents }) => {
       const pages = webContents
         .getAllWebContents()
@@ -48,6 +50,11 @@ delete env.ELECTRON_RUN_AS_NODE;
         pages.map(async (w) => ({
           origin: new URL(w.getURL()).origin,
           route: new URL(w.getURL()).hash,
+          backgroundFrame: await w.executeJavaScriptInIsolatedWorld(1002, [
+            {
+              code: "new Promise(resolve => {const timer=setTimeout(()=>resolve(false),1000);requestAnimationFrame(()=>{clearTimeout(timer);resolve(true)})})",
+            },
+          ]),
           dom: await w.executeJavaScript(
             `({ mains: document.querySelectorAll('[role="main"]').length, rows: document.querySelectorAll('tr.zA').length, legacyIds: document.querySelectorAll('[data-legacy-thread-id]').length, threadIds: document.querySelectorAll('[data-thread-id]').length, lastMessageIds: document.querySelectorAll('[data-legacy-last-message-id]').length, tabs: document.querySelectorAll('[role="tab"][aria-selected="true"]').length, nodeExposed: typeof require !== 'undefined', bridgeExposed: typeof webAccounts !== 'undefined' })`,
           ),

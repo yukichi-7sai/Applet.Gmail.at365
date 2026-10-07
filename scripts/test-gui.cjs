@@ -152,9 +152,9 @@ async function launch(startupUnread = false) {
       () =>
         app.evaluate(
           ({ BrowserWindow }) =>
-            !BrowserWindow.getAllWindows()
-              .find((w) => w.webContents.getURL().includes("/web/index.html"))
-              .contentView.children[0].getVisible(),
+            BrowserWindow.getAllWindows().find((w) =>
+              w.webContents.getURL().includes("/web/index.html"),
+            ).contentView.children.length === 0,
         ),
       "history hides native Gmail view",
     );

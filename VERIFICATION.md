@@ -1,5 +1,14 @@
 # 検証記録
 
+## 2026-10-07: 0.2.2 背景のGmail描画継続（AppDock 0.13.1）
+
+- ユーザーが0.2.1の未読だけの新着集計を確認。「監視処理は動いていたが、非アクティブのGmail側が止まっていた」と補足。オフラインの`probe-visibility.cjs`で、native非表示/未接続のWebContentsViewではdocument.visibilityStateがvisibleでもrequestAnimationFrameが停止することを確認。非表示の背景BrowserWindowへViewをvisible・実サイズで接続すると継続する。記録: `artifacts/visibility-1791372924502/result.json`。
+- ホストを0.13.1に更新し、非選択アカウント/新着一覧/アカウント設定中のViewを専用背景ウィンドウへ保持。Gmail 0.2.2はminimumHostVersionを0.13.1に引き上げる。ページのvisibility偽装・アカウントの順番切替・定期reloadは行わない。未読判定/初回取り込みのロジックは0.2.1を維持。
+- main/renderer型検査・Vite build・Gmail回帰14/14、ホスト回帰75/75成功。新しい`test-background.cjs`は2アカウントのサーバーfixture変更をfetchしてページ自身のrequestAnimationFrameで反映する。UIを一度も開かない状態、未選択アカウント、新着一覧、トレイへ隠す、最小化で未読→既読→未読が同期し、選択は変わらない。停止時の背景ウィンドウ破棄も確認。発行版の記録: `artifacts/background-1791373818907/result.json`。初回の試験はremoteのURLロード前に調べて失敗したため、ロード/フレーム待機を修正した。
+- 発行版GUI: `artifacts/gui-1791373823236/result.json`。起動時未読・未読集計/履歴・メタデータ・絞り込み/クリア・セッション保持/分離/削除・停止/再開・remote権限制限の既存検証も成功。portableと未改変Applet: `artifacts/portable-1791373893030/result.json`（AppDock 0.13.1、exitCode 0）。開発用publish/extensionsへの配置後に全ファイルSHA256一致を確認。
+- 実開発Gmailは保存済み認証で受信トレイ7行（既読7/未読0）、件数0、GPUオフ。新着一覧へ移った裏側でもrequestAnimationFrameが実行されることを確認。診断は件数・状態だけでメール内容/認証値を出さず、実メールの既読/未読は変更していない。記録: `artifacts/gmail-dev/live-result.json`。別ブラウザーからの実既読/未読変更・実受信の背景同期はユーザー確認待ち。実複数アカウント・スリープ・長時間常駐は未確認。
+- 以前の背景試験はDOMを直接変更しており、ページ自身の更新停止まで確認できなかった。今回のfetch→requestAnimationFrameの試験と分けて評価する。修正版の開発アプリを保存済み認証・GPUオフで起動して残した。実利用先への配置・外部pushは行っていない。
+
 ## 2026-10-07: 0.2.1 未読だけの新着件数・起動時未読の取り込み
 
 - ユーザーが0.2.0について「いい感じに動いてる」と報告。その後の要望に合わせ、Gmailの行状態から未読/既読/未確認を表示し、新着の件数・トレイattention・通知を未読だけへ変更。起動/初回ログイン・監視再開時の未読を、その時点の新着として取り込む。

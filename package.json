@@ -1,4 +1,4 @@
 {
-  "name": "applet-gmail-at365", "version": "0.2.1", "private": true,
+  "name": "applet-gmail-at365", "version": "0.2.2", "private": true,
   "scripts": { "build": "node scripts/build.cjs", "test": "node scripts/build.cjs --test" }
 }
