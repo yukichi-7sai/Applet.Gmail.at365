@@ -12,6 +12,32 @@ const o = (keys, extra = {}) => ({
   read: keys.filter((key) => !(extra.unread ?? []).includes(key)),
   ...extra,
 });
+test("history limit changes trim old entries without changing unread counts or replaying arrivals", () => {
+  const m = new InboxMonitor();
+  const keys = Array.from({ length: 40 }, (_, i) => "thread-" + i);
+  m.observe(o(keys, { unread: keys }));
+  assert.equal(m.history.length, 40);
+  m.setHistoryLimit(10);
+  assert.equal(m.history.length, 10);
+  assert.equal(m.pending, 40);
+  assert.equal(m.observe(o(keys, { unread: keys })), false);
+  m.setHistoryLimit(50);
+  assert.equal(m.history.length, 10, "discarded history cannot be restored");
+  m.observe(o(["new", ...keys], { unread: ["new", ...keys] }));
+  assert.equal(m.history.length, 11);
+  assert.equal(m.history[0].key, "new");
+  assert.equal(m.pending, 41);
+  m.setHistoryLimit(10);
+  assert.equal(m.history[0].key, "new", "keep newest entries");
+  for (const invalid of [0, 100, 15, 10.5, NaN, "10", null]) {
+    m.setHistoryLimit(invalid);
+    assert.equal(
+      m.observe(o(["new", ...keys], { unread: ["new", ...keys] })),
+      false,
+    );
+    assert.equal(m.pending, 41);
+  }
+});
 test("initial load is a baseline; prepended arrival is sticky and deduplicated", () => {
   const m = new InboxMonitor();
   assert.equal(m.observe(o(["a", "b", "c"])), false);

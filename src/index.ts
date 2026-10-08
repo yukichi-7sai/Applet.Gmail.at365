@@ -94,6 +94,9 @@ async function tick() {
         monitors.set(a.id, monitor);
       }
       if (data.acknowledged.includes(a.id)) monitor.acknowledge();
+      monitor.setHistoryLimit(
+        Number(context.settings.get("historyLimit", "50")),
+      );
       if (data.monitoringResets?.includes(a.id)) monitor.reset();
       if (!enabled || a.monitoring === false) monitor.reset();
       else {

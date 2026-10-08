@@ -1,5 +1,16 @@
 # 検証記録
 
+## 2026-10-08: v0.6.0 Gmailウィンドウの設定タブ
+
+- ユーザーが「うまくうごいた」と正常動作を報告し、コミットを明示指定（2026-10-08）。確認の詳細を個別項目まで推測せず、今回の設定タブ全体に対する動作確認として記録。検証済みコードに追加変更はない。
+
+- 「アカウント設定」の隣へ「設定」を追加。新着監視・新着通知・送信元/件名表示と履歴の保存件数をホスト設定と共有し、即時保存・双方向同期。アカウント別監視・音は既存画面に保持。必要ホスト0.17.1。
+- main/renderer型検査・Vite build・Gmail回帰21/21、ホスト型検査・回帰85/85成功。Prettierと両リポジトリのgit diff --check成功。
+- 追加回帰で40件の未読を持つ状態から履歴を10件へ減らしても未読件数40を保持し、再観測で再通知せず、保存件数を増やしても消去した履歴を復元しないことを確認。以後の新着は新しい上限で保持する。
+- 発行済みwin-unpackedホストでscripts/test-accounts.cjs成功: artifacts/accounts-1791452824168/result.json（ok:true）。4項目の既定値と履歴件数の選択・保存、Gmail→ホスト保存、ホスト→Gmail即時反映、未宣言キー/不正値拒否、全体監視OFFで全件クリア/ONで未読再取得、設定の再起動保持、900×640の設定画面を確認。既存の並べ替え・個別監視・名前・画像・テーマ・正常終了も成功。preferences-dark.png/history-limit-dark.pngを目視確認。
+- 開発版の最初のGUI実行はビルドとの並行実行で生成済みnode-worker.jsが一時的に消え、途中の再起動で失敗した。発行完了後の固定した配布版で全試験を再実行し成功。
+- 完成した単一EXE＋未改変Appletもartifacts/portable-1791452888173/result.jsonでok:true/host0.17.1/exitCode0。Gmailと対応ホストの発行済み。実利用先への配置・実アカウント操作・commit/pushは実施していない。
+
 ## 2026-10-08: v0.5.2 連続キー入力とログイン後の名前
 
 - ホスト0.16.3と組み合わせ、Gmail内にフォーカスした初回切替後も、クリックし直さず次/前のキーを続けて使える。旧配布版の入力先消失を新しいGUI試験で再現してから修正。別Windowからの切替・未表示/非表示/最小化は前面とフォーカスを保持する。
@@ -38,7 +49,7 @@
 - AppDock 0.16.0とGmail 0.5.0。アカウントを上下に並べ替え、一覧と循環切替に保存順を使用。UUID・選択・ログイン領域・通知音を維持する。追加ボタンはアカウント設定中だけ表示し、追加後はログイン用の受信トレイへ移る。表示名はEnter保存・未保存変更の取消に対応。
 - 個別監視は旧データも既定ON。OFFでは対象の履歴・件数・attentionを消去し、検知/通知/音を抑制する。他のアカウントとログイン/音の設定は維持。再開時は確認できる未読を取り込む。全体監視とのAND、read間のOFF→ONの基準reset、OFF後の古いreportの抑制も確認。
 - ヘッダーのGoogleアカウント画像を取得し64px PNGとしてローカルUIだけへ渡す。実Gmailでlh3.googleusercontent.comとlh3.google.comを確認。後者は転送を含み、Session.fetchのmanual redirectは取消エラーだった。ClientRequestのredirectイベントで転送先を再検証する方式へ修正。Cookieなし、宣言済みの厳密なHTTPS origin、最大3転送、合計5秒、入力/出力64KBで制限し、削除・停止で取消。取得失敗時は先頭文字へ代替し、本文・プレビューは対象外。
-- 最終型検査/Vite、Gmail回帰20/20、ホスト回帰90/90成功。最終win-unpacked EXEの`artifacts/accounts-1791404902870/result.json`で、転送を含む2画像・消失/差替え、設定中だけの追加、並べ替え/選択保持/循環順、個別OFF中の他方の新着、再開取り込み、入力保持/Enter、再起動後の設定保持、10枠上限、900×640のライト/ダーク、正常停止を確認。両テーマの画像を目視確認。
+- 最終型検査/Vite、Gmail回帰21/21、ホスト回帰90/90成功。最終win-unpacked EXEの`artifacts/accounts-1791404902870/result.json`で、転送を含む2画像・消失/差替え、設定中だけの追加、並べ替え/選択保持/循環順、個別OFF中の他方の新着、再開取り込み、入力保持/Enter、再起動後の設定保持、10枠上限、900×640のライト/ダーク、正常停止を確認。両テーマの画像を目視確認。
 - 最終app.asarの通常Electron背景試験: `artifacts/native-background-1791404906576/result.json`。最終単一EXEと未改変Applet: `artifacts/portable-1791404908006/result.json`（本体0.16.0、exitCode0、停止/再開/正常終了）。既存検索・キー・通知音・テーマ等は中間配布版の`artifacts/ui-features-1791404353562/result.json`と`artifacts/gui-1791404385769/result.json`でも成功。portable試験の古い固定ホスト版はpackage.jsonの版との照合へ修正した。
 - 実GmailはPlaywrightなしの通常起動・主プロセスInspectorの読取のみ。保存済み2アカウントの両画像を、UI未表示のまま取得できた（`artifacts/account-avatar-live.json`、avatars=[true,true]、monitoring=[true,true]、pending=[0,0]、GPUオフ）。メール送信・削除・既読変更・本文/認証値の出力なし。実新着を使う個別OFF/ON、長期常駐・スリープ復帰は未確認。
 - 最終本体EXE100,447,550 bytes、SHA256 `55860971131436395A82378679A93AC6CF766A5B90F44CFC9936A14E3C423BB7`。.NETはframework-dependentクリーン発行、Runtime混入なし。開発用publish/extensionsへ全資産をSHA256照合して配置し、保存認証/GPUオフの通常テストアプリを起動。README/DEVELOPMENT/ホストAPI文書を更新、ローカルリンク88件・Prettier・git diff check成功。実利用先deploy・外部pushなし。

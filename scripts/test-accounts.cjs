@@ -223,6 +223,111 @@ async function remote(id, code) {
 (async () => {
   try {
     await launch();
+    await ui.getByRole("button", { name: "設定", exact: true }).click();
+    assert.deepEqual((await snapshot()).settings, {
+      monitoring: true,
+      notifications: false,
+      notificationDetails: false,
+      historyLimit: "50",
+    });
+    assert.equal(
+      await ui
+        .getByRole("button", { name: "＋ アカウントを追加", exact: true })
+        .count(),
+      0,
+    );
+    await ui.getByLabel("通知に送信元と件名を表示", { exact: true }).check();
+    await until(
+      async () =>
+        (await dock.evaluate(() => window.dock.snapshot())).settings.value
+          .extensions["at365.gmail"].settings.notificationDetails === true,
+      "UI saves shared setting",
+    );
+    await dock.evaluate(async () => {
+      const { settings } = await window.dock.snapshot();
+      settings.value.extensions["at365.gmail"].settings.notificationDetails =
+        false;
+      await window.dock.saveSettings(settings.value, settings.revision);
+    });
+    await until(
+      async () =>
+        !(await ui
+          .getByLabel("通知に送信元と件名を表示", { exact: true })
+          .isChecked()),
+      "host change updates Gmail settings",
+    );
+    for (const [key, value] of [
+      ["unknown", true],
+      ["enabled", false],
+      ["monitoring", "false"],
+      ["__proto__", true],
+      ["historyLimit", 100],
+      ["historyLimit", 15],
+      ["historyLimit", "15"],
+    ]) {
+      const rejected = await ui.evaluate(
+        async ([key, value]) => {
+          try {
+            await window.webAccounts.setSetting(key, value);
+            return false;
+          } catch {
+            return true;
+          }
+        },
+        [key, value],
+      );
+      assert.equal(
+        rejected,
+        true,
+        "reject setting outside declared boolean/number contract",
+      );
+    }
+    await ui.getByLabel("新着の監視", { exact: true }).uncheck();
+    await until(
+      async () =>
+        (await snapshot()).accounts.every(
+          (a) => !a.data?.pending && !a.attention,
+        ),
+      "global monitoring OFF clears all accounts",
+    );
+    await ui.getByLabel("新着の監視", { exact: true }).check();
+    await until(
+      async () =>
+        (await snapshot()).accounts.every((a) => a.data?.pending === 1),
+      "global monitoring resumes unread baseline",
+    );
+    await ui.getByLabel("新着通知", { exact: true }).check();
+    await until(
+      async () => (await snapshot()).settings.notifications === true,
+      "notification setting saved",
+    );
+    await ui
+      .getByLabel("新着履歴の保存件数", { exact: true })
+      .selectOption("20");
+    await until(
+      async () => (await snapshot()).settings.historyLimit === "20",
+      "history limit saved",
+    );
+    await app.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()
+        .find((w) => w.webContents.getURL().includes("/web/index.html"))
+        .setContentSize(900, 640),
+    );
+    assert.equal(
+      await ui.evaluate(
+        () =>
+          document.documentElement.scrollWidth <= innerWidth &&
+          document.querySelector("main").scrollWidth <=
+            document.querySelector("main").clientWidth,
+      ),
+      true,
+    );
+    await ui.screenshot({ path: path.join(profile, "preferences-dark.png") });
+    await ui
+      .getByLabel("新着履歴の保存件数", { exact: true })
+      .scrollIntoViewIfNeeded();
+    await ui.screenshot({ path: path.join(profile, "history-limit-dark.png") });
+    await ui.getByRole("button", { name: "受信トレイ", exact: true }).click();
     const color = await app.evaluate(
       ({ nativeImage }, images) =>
         images.map((a) => {
@@ -417,6 +522,16 @@ async function remote(id, code) {
     assert.equal(saved.accounts[1].monitoring, false);
     await launch();
     const restored = await snapshot();
+    assert.deepEqual(
+      restored.settings,
+      {
+        monitoring: true,
+        notifications: true,
+        notificationDetails: false,
+        historyLimit: "20",
+      },
+      "global preferences persist across restart",
+    );
     add = ui.getByRole("button", { name: "＋ アカウントを追加", exact: true });
     monitoring = ui.getByLabel("このアカウントの新着を監視する");
     assert.deepEqual(
@@ -570,6 +685,7 @@ async function remote(id, code) {
             "authenticated avatar requests in isolated account sessions",
             "cycle preserves foreground and never opens/restores Gmail",
             "settings-only add",
+            "Gmail preferences share host storage, sync live, persist, enforce boolean scope and resume monitoring",
             "reorder and cycle",
             "per-account OFF/resume and isolation",
             "name draft/Enter",

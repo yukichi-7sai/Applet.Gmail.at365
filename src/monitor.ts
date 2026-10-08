@@ -74,6 +74,18 @@ export class InboxMonitor {
   attention = false;
   pending = 0;
   history: Arrival[] = [];
+  private historyLimit = 50;
+  setHistoryLimit(value: unknown) {
+    this.historyLimit =
+      typeof value === "number" &&
+      Number.isInteger(value) &&
+      value >= 10 &&
+      value <= 50 &&
+      value % 10 === 0
+        ? value
+        : 50;
+    this.history = this.history.slice(0, this.historyLimit);
+  }
   lastArrivals: Arrival[] = [];
   get notificationArrivals() {
     return this.lastArrivals.filter((mail) => mail.unread === true);
@@ -102,7 +114,7 @@ export class InboxMonitor {
           !nextThreads.has(thread(entry.key))
         )
           removed.add(thread(entry.key));
-      // Pending may outlive the 50-entry history. Reconcile its whole scope too.
+      // Pending may outlive the bounded history. Reconcile its whole scope too.
       for (const [id, context] of this.pendingContexts)
         if (context === next.context && !nextThreads.has(id)) removed.add(id);
     } else if (
@@ -219,7 +231,10 @@ export class InboxMonitor {
         this.pendingThreads.set(mail.key.split("~")[0], mail.unread);
         this.pendingContexts.set(mail.key.split("~")[0], next.context);
       }
-      this.history = [...this.lastArrivals, ...this.history].slice(0, 50);
+      this.history = [...this.lastArrivals, ...this.history].slice(
+        0,
+        this.historyLimit,
+      );
     }
     if (this.pendingThreads.size > 4096) {
       for (const [thread, unread] of this.pendingThreads) {

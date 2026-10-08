@@ -3,8 +3,8 @@
   "id": "at365.gmail",
   "name": "Applet.Gmail.at365",
   "displayName": "Gmail",
-  "version": "0.5.2",
-  "minimumHostVersion": "0.16.3",
+  "version": "0.6.0",
+  "minimumHostVersion": "0.17.1",
   "runtime": "node",
   "entry": "index.js",
   "description": "アカウントごとのGmail Web画面と新着の検知",
@@ -18,7 +18,14 @@
   "settings": [
     { "key": "monitoring", "title": "新着の監視", "type": "boolean", "default": true },
     { "key": "notifications", "title": "新着通知", "type": "boolean", "default": true },
-    { "key": "notificationDetails", "title": "通知に送信元と件名を表示", "type": "boolean", "default": false }
+    { "key": "notificationDetails", "title": "通知に送信元と件名を表示", "type": "boolean", "default": false },
+    { "key": "historyLimit", "title": "新着履歴の保存件数", "type": "select", "default": "50", "options": [
+      { "label": "10 件 / アカウント", "value": "10" },
+      { "label": "20 件 / アカウント", "value": "20" },
+      { "label": "30 件 / アカウント", "value": "30" },
+      { "label": "40 件 / アカウント", "value": "40" },
+      { "label": "50 件 / アカウント", "value": "50" }
+    ], "description": "アカウントごとに10〜50件を保持します。減らすと古い履歴を消去します。未読件数の集計には影響しません。" }
   ],
   "webAccounts": {
     "avatarOrigins": ["https://lh3.googleusercontent.com", "https://lh4.googleusercontent.com", "https://lh5.googleusercontent.com", "https://lh6.googleusercontent.com", "https://lh3.google.com", "https://lh4.google.com", "https://lh5.google.com", "https://lh6.google.com"],

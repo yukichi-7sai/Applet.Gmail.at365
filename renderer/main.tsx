@@ -12,7 +12,30 @@ declare global {
     webAccounts: WebAccountUi;
   }
 }
-type Page = "inbox" | "arrivals" | "settings";
+type Page = "inbox" | "arrivals" | "settings" | "preferences";
+const preferences = [
+  {
+    key: "monitoring",
+    title: "新着の監視",
+    fallback: true,
+    description:
+      "すべてのアカウントの新着を監視します。OFFにすると新着履歴・件数を消去し、通知と音を止めます。ONへ戻すと、監視中のアカウントの未読を取り込み直します。",
+  },
+  {
+    key: "notifications",
+    title: "新着通知",
+    fallback: true,
+    description:
+      "未読の新着をデスクトップ通知でお知らせします。AppDock本体とWindowsの通知設定も適用されます。アカウントごとの通知音は独立しています。",
+  },
+  {
+    key: "notificationDetails",
+    title: "通知に送信元と件名を表示",
+    fallback: false,
+    description:
+      "ONにすると通知に送信元と件名を表示します。OFFでは新着の件数だけを表示します。",
+  },
+];
 type MailData = { pending: number; arrivals: Arrival[]; monitoring?: boolean };
 const mailData = (a?: WebAccount): MailData => {
   const data = a?.data as MailData | null;
@@ -55,6 +78,9 @@ function App() {
   const [notice, setNotice] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
+  const [preferenceValues, setPreferenceValues] = useState<
+    Record<string, boolean | string>
+  >({});
   const [error, setError] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -70,6 +96,26 @@ function App() {
     return window.webAccounts.onChanged(() => void load());
   }, []);
   const account = snapshot?.accounts.find((a) => a.id === snapshot.selected);
+  useEffect(
+    () => setPreferenceValues(snapshot?.settings ?? {}),
+    [
+      snapshot?.settings?.monitoring,
+      snapshot?.settings?.notifications,
+      snapshot?.settings?.notificationDetails,
+      snapshot?.settings?.historyLimit,
+    ],
+  );
+  const setPreference = (key: string, value: boolean | string) => {
+    if (working.current) return;
+    const previous = preferenceValues;
+    setPreferenceValues({ ...previous, [key]: value });
+    void run(() =>
+      window.webAccounts.setSetting(key, value).catch((error) => {
+        setPreferenceValues(previous);
+        throw error;
+      }),
+    );
+  };
   useEffect(() => {
     document.documentElement.dataset.theme =
       snapshot?.dark === false ? "light" : "dark";
@@ -244,6 +290,12 @@ function App() {
           >
             アカウント設定
           </button>
+          <button
+            aria-pressed={page === "preferences"}
+            onClick={() => setPage("preferences")}
+          >
+            設定
+          </button>
         </nav>
         <span className="header-note">{accounts.length} アカウント</span>
       </header>
@@ -408,11 +460,19 @@ function App() {
         ) : (
           <div className="page-heading">
             <div>
-              <h1>{page === "arrivals" ? "新着一覧" : "アカウント設定"}</h1>
+              <h1>
+                {page === "arrivals"
+                  ? "新着一覧"
+                  : page === "preferences"
+                    ? "設定"
+                    : "アカウント設定"}
+              </h1>
               <p>
                 {page === "arrivals"
                   ? "受信トレイの更新から検知した新着を、まとめて確認できます。"
-                  : "順番・表示名・新着の監視と通知音を管理します。"}
+                  : page === "preferences"
+                    ? "Gmail全体の新着監視と通知を設定します。"
+                    : "順番・表示名・新着の監視と通知音を管理します。"}
               </p>
             </div>
             {page === "arrivals" && (
@@ -434,7 +494,9 @@ function App() {
             ? "Gmail表示領域"
             : page === "arrivals"
               ? "新着の履歴"
-              : "アカウント管理"
+              : page === "preferences"
+                ? "Gmail全体の設定"
+                : "アカウント管理"
         }
       >
         {page === "inbox" ? (
@@ -449,7 +511,60 @@ function App() {
                 {error}
               </p>
             )}
-            {page === "arrivals" ? (
+            {page === "preferences" ? (
+              <section className="settings-card preferences-card">
+                <h2>新着の監視と通知</h2>
+                <p>
+                  すべてのアカウントに共通の設定です。変更はその場で保存され、AppDockの「設定
+                  → Gmail」と連動します。
+                </p>
+                {preferences.map((preference) => (
+                  <div className="preference-row" key={preference.key}>
+                    <label className="sound-toggle">
+                      <input
+                        type="checkbox"
+                        aria-label={preference.title}
+                        disabled={busy || !snapshot?.settings}
+                        checked={
+                          (preferenceValues[preference.key] ??
+                            preference.fallback) === true
+                        }
+                        onChange={(e) =>
+                          setPreference(preference.key, e.currentTarget.checked)
+                        }
+                      />
+                      {preference.title}
+                    </label>
+                    <p>{preference.description}</p>
+                  </div>
+                ))}
+                <div className="preference-row">
+                  <label className="history-limit">
+                    <span>新着履歴の保存件数</span>
+                    <select
+                      aria-label="新着履歴の保存件数"
+                      disabled={busy || !snapshot?.settings}
+                      value={Number(preferenceValues.historyLimit ?? 50)}
+                      onChange={(e) =>
+                        setPreference("historyLimit", e.currentTarget.value)
+                      }
+                    >
+                      {[10, 20, 30, 40, 50].map((limit) => (
+                        <option key={limit} value={limit}>
+                          {limit} 件 / アカウント
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p>
+                    各アカウントの新しい履歴を、この件数まで残します。件数を減らすと古い履歴は消え、増やしても元には戻りません。未読件数の集計は変わりません。履歴はアプリの起動中だけ保持します。
+                  </p>
+                </div>
+                <p className="hint">
+                  アカウントごとの監視と通知音は「アカウント設定」で変更できます。
+                </p>
+              </section>
+            ) : page === "arrivals" ? (
               <>
                 <div className="list-summary">
                   <div className="filters" aria-label="新着の表示範囲">
@@ -500,7 +615,9 @@ function App() {
                   </span>
                 </div>
                 <p className="list-note">
-                  件数は未読の新着スレッド数です。起動時の未読も含みます。履歴は各アカウントの最大50件を保持します。
+                  件数は未読の新着スレッド数です。起動時の未読も含みます。履歴は各アカウントの最大
+                  {Number(snapshot?.settings?.historyLimit ?? 50)}
+                  件を保持します。
                 </p>
                 {shown.length === 0 ? (
                   <div className="empty history-empty">
@@ -765,8 +882,7 @@ function App() {
                   {account?.monitoring !== false &&
                     mailData(account).monitoring === false && (
                       <p className="monitor-note" role="status">
-                        AppDockの「設定 →
-                        Gmail」で全体の新着監視がOFFになっています。
+                        「設定」タブで全体の新着監視がOFFになっています。
                       </p>
                     )}
                   <button
