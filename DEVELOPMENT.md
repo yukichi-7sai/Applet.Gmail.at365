@@ -103,3 +103,7 @@ Google認証の許可先には`https://accounts.youtube.com`も含めます。[G
 
 ホストのscripts/applet-pages-ui-test.cjsは本体ページを検証します。既存Gmailのtest-gui/test-accounts/test-ui-features/test-background/test-auth-redirectは表示方法をwindowへ明示し、Electron contextのpagesから独立UI WebContentsを取得します。WindowはcontentView内のUI所有関係で照合します。GUIを実行する前にホストとAppletをビルドし、試験中にout/mainを再生成しないでください。
 0.8.0のローカルUIはアカウント数/切替バー/重複する監視状態を取り除きます。header高さとtoolbar高さを共通CSS変数にし、左側のaccount-list-spacerと右側mainに同じ高さを使います（受信トレイ64px、他タブ80px）。次/前のコマンドとキーは保持します。AppDockのscripts/ribbon-layout-ui-test.cjsでページ表示時、test-gui.cjsで別Window時の領域を確認します。
+
+0.9.0はAppDock0.20.0のcontext.webAccounts.navigate(action)を利用し、4コマンドとUIの操作を同じホスト実装へ渡します。snapshot.navigationRevisionの変更で受信トレイタブへ戻ります。showToolbarは全タブのtoolbarとmain領域、account-list-offsetは受信トレイ基準の固定余白です。ビルド時にpackage.jsonの版をVite defineへ渡し、重複した版定数を持ちません。externalLinkSettingは自身のboolean設定を宣言し、確認チェックをホストの設定保存経路へ渡します。scripts/test-toolbar.cjsは通知オブジェクトのshow/外部アプリ呼出し/確認だけを隔離fixtureへ置き換え、実click handler・コマンド・WebContentsと永続設定を確認します。
+
+新着一覧のunreadOnlyはmanifestのboolean設定として保存します。UIの「未読だけ」と「絞り込みを解除」、AppDock側設定は同じ値へ反映し、保存失敗時は下書きを戻します。監視・履歴・未読集計のデータは変更しません。

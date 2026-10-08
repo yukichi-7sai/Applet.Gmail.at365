@@ -1,5 +1,17 @@
 # 検証記録
 
+## 2026-10-08: v0.9.0 ツールバー・コマンド・表示設定
+
+- 0.8.0の正常動作をユーザーが報告し、mainへFF統合（918fb59）。今回はcodex/gmail-toolbar-commands。最低AppDock0.20.0、publish/Applet.Gmail.at365を生成。
+- 受信トレイのtoolbarを戻る/進む/リロード/受信トレイの4アイコンにし、aria-labelとコマンド名のtitleを付与。clearは受信トレイから削除して新着一覧と既存コマンドを使用。アカウント一覧の上端は受信トレイ基準で固定（表示時130DIP、非表示時66DIP）、他タブの本文146DIPへ追従させない。左上はVite buildでpackage版を表示する。
+- back/forward/reload/inboxの安定コマンドIDを追加し、既存acknowledgeを継続。ホストの共通navigateを使用し、選択アカウントを操作、実行後は受信トレイタブへ戻る。表示先はopenで管理。
+- showToolbarは全タブ共通の表示/非表示。openExternalWithoutConfirmationは外部リンク確認を省略し、確認のチェック付き「開く」で同じ設定を保存、取消は保存しない。両方ともGmail設定とAppDock設定を共有し再起動保持。
+- 追加指示により「未読だけ」をunreadOnlyのboolean設定として保存。タブ移動・再起動保持、ホスト変更との同期、絞り込み解除と保存失敗時の復元を共通setSetting経路へ揃える。監視や件数の集計には影響させない。
+- main/renderer型検査・Vite・回帰21/21成功。ホスト90/90、発行・Prettier/diff checkも成功。最終win-unpackedのscripts/test-toolbar.cjs: artifacts/toolbar-1791463003042/result.json（ok:true）。4アイコン/title/版、コマンド・変更キー・全件clear、全タブ一覧位置/toolbar非表示、リンク取消/一度開く/記憶/再確認/スキーム境界/再起動、未読だけ再起動保持を確認。画像目視成功。
+- Windows通知には以前からat365.gmail.openが設定済み。実Notificationオブジェクトのclick handlerを試験し、最小化した本体をGmailページで復元、Window設定を尊重して再表示、停止後の通知を拒否することを確認。showと外部アプリ起動はfixtureで抑止し、実Windows通知の実表示・人手クリックとは区別する。
+- 既存設定GUIのaccounts-1791463014150、検索/切替/音/削除/位置のui-features-1791463063443はok:true。最終単一EXEのportable-1791463095688はok:true/host0.20.0/exitCode0。未改変Appletでページ・新着・履歴・クリア・停止/再開・正常終了を確認。
+- [ホスト検証記録](../AppDock.at365/VERIFICATION.md)にEXEの版/サイズ/ハッシュを記載。README/DEVELOPMENT/API更新。実利用deploy/外部push/実Google操作なし。
+
 ## 2026-10-08: v0.8.0 アカウント一覧の余白と上部表示
 
 - 前回0.7.0をmainへfast-forward統合（dbe84be）後、codex/ribbon-layout-gmail-polishで実施。最低ホスト0.18.0は維持。配布物をpublish/Applet.Gmail.at365へ生成。

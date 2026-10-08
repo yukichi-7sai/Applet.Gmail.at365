@@ -15,6 +15,7 @@ interface Context {
     start(): Promise<unknown>;
     open(): Promise<unknown>;
     cycle(direction: 1 | -1): Promise<unknown>;
+    navigate(action: "back" | "forward" | "reload" | "inbox"): Promise<unknown>;
     read(): Promise<{
       accounts: Account[];
       acknowledged: string[];
@@ -162,6 +163,15 @@ export async function activate(c: Context) {
   context = c;
   active = true;
   c.commands.register(ID + ".open", "Gmailを開く", () => c.webAccounts.open());
+  for (const [action, title] of [
+    ["back", "戻る"],
+    ["forward", "進む"],
+    ["reload", "リロード"],
+    ["inbox", "受信トレイへ"],
+  ] as const)
+    c.commands.register(ID + "." + action, title, () =>
+      c.webAccounts.navigate(action),
+    );
   c.commands.register(ID + ".nextAccount", "次のアカウント", () =>
     c.webAccounts.cycle(1),
   );

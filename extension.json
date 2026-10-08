@@ -3,19 +3,26 @@
   "id": "at365.gmail",
   "name": "Applet.Gmail.at365",
   "displayName": "Gmail",
-  "version": "0.8.0",
-  "minimumHostVersion": "0.18.0",
+  "version": "0.9.0",
+  "minimumHostVersion": "0.20.0",
   "runtime": "node",
   "entry": "index.js",
   "description": "アカウントごとのGmail Web画面と新着の検知",
   "capabilities": ["pages", "web-accounts", "ui", "settings", "notifications", "tray-attention", "audio", "file-dialog"],
   "commands": [
+    { "id": "at365.gmail.back", "title": "戻る" },
+    { "id": "at365.gmail.forward", "title": "進む" },
+    { "id": "at365.gmail.reload", "title": "リロード" },
+    { "id": "at365.gmail.inbox", "title": "受信トレイへ" },
     { "id": "at365.gmail.open", "title": "Gmailを開く", "activateOnExecute": true },
     { "id": "at365.gmail.acknowledge", "title": "新着表示をクリア" },
     { "id": "at365.gmail.nextAccount", "title": "次のアカウント" },
     { "id": "at365.gmail.previousAccount", "title": "前のアカウント" }
   ],
   "settings": [
+    { "key": "unreadOnly", "title": "新着一覧を未読だけ表示", "type": "boolean", "default": false, "description": "新着一覧の「未読だけ」と連動し、再起動後も保持します。" },
+    { "key": "showToolbar", "title": "ツールバーを表示", "type": "boolean", "default": true, "description": "受信トレイ・新着一覧・設定のツールバーエリアを表示します。" },
+    { "key": "openExternalWithoutConfirmation", "title": "外部リンクを確認せずに開く", "type": "boolean", "default": false, "description": "外部アプリでリンクを開く前の確認を省略します。" },
     { "key": "monitoring", "title": "新着の監視", "type": "boolean", "default": true },
     { "key": "notifications", "title": "新着通知", "type": "boolean", "default": true },
     { "key": "notificationDetails", "title": "通知に送信元と件名を表示", "type": "boolean", "default": false },
@@ -31,6 +38,7 @@
     { "id": "gmail", "title": "Gmail", "icon": "mail", "source": "web-accounts", "openCommand": "at365.gmail.open", "defaultDisplay": "page" }
   ],
   "webAccounts": {
+    "externalLinkSetting": "openExternalWithoutConfirmation",
     "avatarOrigins": ["https://lh3.googleusercontent.com", "https://lh4.googleusercontent.com", "https://lh5.googleusercontent.com", "https://lh6.googleusercontent.com", "https://lh3.google.com", "https://lh4.google.com", "https://lh5.google.com", "https://lh6.google.com"],
     "keepActive": true,
     "url": "https://mail.google.com/mail/u/0/#inbox",

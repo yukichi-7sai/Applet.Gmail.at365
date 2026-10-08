@@ -102,6 +102,7 @@ test("account sounds are independent of desktop notifications and cycle commands
   const sounds = [],
     commands = new Map(),
     cycles = [],
+    navigations = [],
     notices = [];
   const observation = (keys, unread) => ({
     ready: true,
@@ -139,6 +140,9 @@ test("account sounds are independent of desktop notifications and cycle commands
     webAccounts: {
       async start() {},
       async open() {},
+      async navigate(action) {
+        navigations.push(action);
+      },
       async cycle(direction) {
         cycles.push(direction);
       },
@@ -185,6 +189,9 @@ test("account sounds are independent of desktop notifications and cycle commands
     await commands.get("at365.gmail.nextAccount")();
     await commands.get("at365.gmail.previousAccount")();
     assert.deepEqual(cycles, [1, -1]);
+    for (const action of ["back", "forward", "reload", "inbox"])
+      await commands.get("at365.gmail." + action)();
+    assert.deepEqual(navigations, ["back", "forward", "reload", "inbox"]);
     for (const account of accounts)
       account.observation = observation(["new", "a"], ["new"]);
     await tick();
@@ -198,7 +205,14 @@ test("account sounds are independent of desktop notifications and cycle commands
     await tick();
     assert.deepEqual(sounds, ["C:\\fixture\\one.wav", "C:\\fixture\\two.wav"]);
     assert.equal(notices.length, 2);
-    assert.ok(notices.every((notice) => notice[2].silent === true));
+    assert.ok(
+      notices.every(
+        (notice) =>
+          notice[2].silent === true && notice[2].command === "at365.gmail.open",
+      ),
+    );
+    await commands.get("at365.gmail.acknowledge")();
+    assert.equal(sounds.length, 2);
     await tick();
     assert.equal(sounds.length, 2);
     enabled = false;

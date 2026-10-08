@@ -12,8 +12,52 @@ declare global {
     webAccounts: WebAccountUi;
   }
 }
+declare const __APPLET_VERSION__: string;
+
+function NavigationIcon({
+  action,
+}: {
+  action: "back" | "forward" | "reload" | "inbox";
+}) {
+  const paths = {
+    back: "m12 5-7 7 7 7M5 12h15",
+    forward: "m12 5 7 7-7 7M4 12h15",
+    reload: "M20 7v5h-5M20 12a8 8 0 1 0-2.3 5.7M20 7l-2.3-2.3",
+    inbox: "M4 4h16v16H4zM4 14h5l2 3h2l2-3h5",
+  };
+  return (
+    <svg
+      aria-hidden="true"
+      width="19"
+      height="19"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={paths[action]} />
+    </svg>
+  );
+}
+
 type Page = "inbox" | "arrivals" | "settings" | "preferences";
 const preferences = [
+  {
+    key: "showToolbar",
+    title: "ツールバーを表示",
+    fallback: true,
+    description:
+      "すべてのタブのツールバーエリアを表示します。OFFでも上部のタブとコマンド・ショートカットから操作できます。",
+  },
+  {
+    key: "openExternalWithoutConfirmation",
+    title: "外部リンクを確認せずに開く",
+    fallback: false,
+    description:
+      "リンクを既定の外部アプリで開く前の確認を省略します。確認ダイアログの「次回から聞かずに開く」からもONにできます。",
+  },
   {
     key: "monitoring",
     title: "新着の監視",
@@ -73,7 +117,7 @@ function App() {
   const [snapshot, setSnapshot] = useState<WebAccountSnapshot>();
   const [page, setPage] = useState<Page>("inbox");
   const [scope, setScope] = useState<"all" | "selected">("all");
-  const [unreadOnly, setUnreadOnly] = useState(false);
+
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(false);
@@ -81,11 +125,19 @@ function App() {
   const [preferenceValues, setPreferenceValues] = useState<
     Record<string, boolean | string>
   >({});
+  const unreadOnly = preferenceValues.unreadOnly === true;
   const [error, setError] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const working = useRef(false);
   const viewport = useRef<HTMLElement>(null);
+  const navigationRevision = useRef(0);
+  const showToolbar = snapshot?.settings?.showToolbar !== false;
+  useEffect(() => {
+    const revision = snapshot?.navigationRevision ?? 0;
+    if (revision > navigationRevision.current) setPage("inbox");
+    navigationRevision.current = revision;
+  }, [snapshot?.navigationRevision]);
   const load = () =>
     window.webAccounts
       .snapshot()
@@ -103,6 +155,9 @@ function App() {
       snapshot?.settings?.notifications,
       snapshot?.settings?.notificationDetails,
       snapshot?.settings?.historyLimit,
+      snapshot?.settings?.showToolbar,
+      snapshot?.settings?.unreadOnly,
+      snapshot?.settings?.openExternalWithoutConfirmation,
     ],
   );
   const setPreference = (key: string, value: boolean | string) => {
@@ -152,7 +207,7 @@ function App() {
     const observer = new ResizeObserver(update);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [page]);
+  }, [page, showToolbar]);
   async function run(action: () => Promise<unknown>) {
     if (working.current) return;
     working.current = true;
@@ -247,7 +302,12 @@ function App() {
       className="gmail-app"
       style={
         {
-          "--toolbar-height": page === "inbox" ? "64px" : "80px",
+          "--toolbar-height": showToolbar
+            ? page === "inbox"
+              ? "64px"
+              : "80px"
+            : "0px",
+          "--account-list-offset": showToolbar ? "64px" : "0px",
         } as React.CSSProperties
       }
     >
@@ -275,7 +335,7 @@ function App() {
           </span>
           <div>
             <strong>Gmail</strong>
-            <small>AppDock</small>
+            <small title="Applet.Gmail.at365">v{__APPLET_VERSION__}</small>
           </div>
         </div>
         <nav className="pages" aria-label="Gmailの画面">
@@ -357,6 +417,14 @@ function App() {
         {page === "settings" && accounts.length >= 10 && (
           <p className="account-limit">10アカウントまで追加できます。</p>
         )}
+        {page === "inbox" && (error || notice) && (
+          <p
+            className={"account-feedback " + (error ? "error" : "")}
+            role={error ? "alert" : "status"}
+          >
+            {error || notice}
+          </p>
+        )}
         <div className="sidebar-bottom">
           <span className="privacy-mark" aria-hidden="true">
             ◈
@@ -370,99 +438,92 @@ function App() {
           </button>
         </div>
       </aside>
-      <section className="toolbar" aria-label="操作と状態">
-        {page === "inbox" ? (
-          <>
-            <div className="navigation">
-              <button
-                aria-label="戻る"
-                disabled={busy || !account?.canGoBack}
-                onClick={() =>
-                  void run(() => window.webAccounts.navigate("back"))
-                }
-              >
-                ←
-              </button>
-              <button
-                aria-label="進む"
-                disabled={busy || !account?.canGoForward}
-                onClick={() =>
-                  void run(() => window.webAccounts.navigate("forward"))
-                }
-              >
-                →
-              </button>
-              <button
-                aria-label="再読み込み"
-                disabled={busy || !account}
-                onClick={() =>
-                  void run(() => window.webAccounts.navigate("reload"))
-                }
-              >
-                ↻
-              </button>
-              <button
-                disabled={busy || !account}
-                onClick={() =>
-                  void run(() => window.webAccounts.navigate("inbox"))
-                }
-              >
-                受信トレイへ
-              </button>
-              <input
-                aria-label="現在のページURL"
-                readOnly
-                value={account?.url ?? ""}
-              />
-              <button
-                className="clear"
-                disabled={busy || !account?.attention}
-                onClick={() =>
-                  void run(() => window.webAccounts.acknowledge(account!.id))
-                }
-              >
-                新着表示をクリア
-              </button>
+      {showToolbar && (
+        <section className="toolbar" aria-label="操作と状態">
+          {page === "inbox" ? (
+            <>
+              <div className="navigation">
+                <button
+                  aria-label="戻る"
+                  title="戻る"
+                  className="navigation-icon"
+                  disabled={busy || !account?.canGoBack}
+                  onClick={() =>
+                    void run(() => window.webAccounts.navigate("back"))
+                  }
+                >
+                  <NavigationIcon action="back" />
+                </button>
+                <button
+                  aria-label="進む"
+                  title="進む"
+                  className="navigation-icon"
+                  disabled={busy || !account?.canGoForward}
+                  onClick={() =>
+                    void run(() => window.webAccounts.navigate("forward"))
+                  }
+                >
+                  <NavigationIcon action="forward" />
+                </button>
+                <button
+                  aria-label="リロード"
+                  title="リロード"
+                  className="navigation-icon"
+                  disabled={busy || !account}
+                  onClick={() =>
+                    void run(() => window.webAccounts.navigate("reload"))
+                  }
+                >
+                  <NavigationIcon action="reload" />
+                </button>
+                <button
+                  aria-label="受信トレイへ"
+                  title="受信トレイへ"
+                  className="navigation-icon"
+                  disabled={busy || !account}
+                  onClick={() =>
+                    void run(() => window.webAccounts.navigate("inbox"))
+                  }
+                >
+                  <NavigationIcon action="inbox" />
+                </button>
+                <input
+                  aria-label="現在のページURL"
+                  readOnly
+                  value={account?.url ?? ""}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="page-heading">
+              <div>
+                <h1>
+                  {page === "arrivals"
+                    ? "新着一覧"
+                    : page === "preferences"
+                      ? "設定"
+                      : "アカウント設定"}
+                </h1>
+                <p>
+                  {page === "arrivals"
+                    ? "受信トレイの更新から検知した新着を、まとめて確認できます。"
+                    : page === "preferences"
+                      ? "Gmail全体の表示・リンク・新着監視と通知を設定します。"
+                      : "順番・表示名・新着の監視と通知音を管理します。"}
+                </p>
+              </div>
+              {page === "arrivals" && (
+                <button
+                  disabled={busy || !scopePending}
+                  onClick={() => void clear()}
+                >
+                  新着表示をクリア
+                </button>
+              )}
             </div>
-            {(error || notice) && (
-              <span
-                className={"action-feedback " + (error ? "error" : "")}
-                role={error ? "alert" : "status"}
-                title={error || notice}
-              >
-                {error || notice}
-              </span>
-            )}
-          </>
-        ) : (
-          <div className="page-heading">
-            <div>
-              <h1>
-                {page === "arrivals"
-                  ? "新着一覧"
-                  : page === "preferences"
-                    ? "設定"
-                    : "アカウント設定"}
-              </h1>
-              <p>
-                {page === "arrivals"
-                  ? "受信トレイの更新から検知した新着を、まとめて確認できます。"
-                  : page === "preferences"
-                    ? "Gmail全体の新着監視と通知を設定します。"
-                    : "順番・表示名・新着の監視と通知音を管理します。"}
-              </p>
-            </div>
-            {page === "arrivals" && (
-              <button
-                disabled={busy || !scopePending}
-                onClick={() => void clear()}
-              >
-                新着表示をクリア
-              </button>
-            )}
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+      )}
       <main
         ref={viewport}
         className={page === "inbox" ? "web-viewport" : "content"}
@@ -490,7 +551,7 @@ function App() {
             )}
             {page === "preferences" ? (
               <section className="settings-card preferences-card">
-                <h2>新着の監視と通知</h2>
+                <h2>Gmailの設定</h2>
                 <p>
                   すべてのアカウントに共通の設定です。変更はその場で保存され、AppDockの「設定
                   → Gmail」と連動します。
@@ -564,8 +625,11 @@ function App() {
                   <label className="unread-filter">
                     <input
                       type="checkbox"
+                      disabled={busy || !snapshot?.settings}
                       checked={unreadOnly}
-                      onChange={(e) => setUnreadOnly(e.target.checked)}
+                      onChange={(e) =>
+                        setPreference("unreadOnly", e.target.checked)
+                      }
                     />
                     未読だけ
                   </label>
@@ -621,7 +685,7 @@ function App() {
                       <button
                         onClick={() => {
                           setQuery("");
-                          setUnreadOnly(false);
+                          setPreference("unreadOnly", false);
                         }}
                       >
                         絞り込みを解除

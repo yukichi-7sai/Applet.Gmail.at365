@@ -770,20 +770,24 @@ h3 {
   --header-height: 66px;
 }
 .account-list-spacer {
-  height: var(--toolbar-height);
+  height: var(--account-list-offset);
   flex-shrink: 0;
 }
-.action-feedback {
-  position: absolute;
-  right: 18px;
-  bottom: 3px;
-  max-width: calc(100% - 36px);
+.account-feedback {
+  padding: 10px;
   font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
   color: var(--muted);
 }
-.action-feedback.error {
+.account-feedback.error {
   color: var(--danger);
+}
+.navigation button.navigation-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 32px;
+  padding: 0;
+  flex-shrink: 0;
 }

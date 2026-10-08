@@ -236,6 +236,9 @@ async function remote(id, code) {
       monitoring: true,
       notifications: false,
       notificationDetails: false,
+      showToolbar: true,
+      openExternalWithoutConfirmation: false,
+      unreadOnly: false,
       historyLimit: "50",
     });
     assert.equal(
@@ -560,6 +563,9 @@ async function remote(id, code) {
         monitoring: true,
         notifications: true,
         notificationDetails: false,
+        showToolbar: true,
+        openExternalWithoutConfirmation: false,
+        unreadOnly: false,
         historyLimit: "20",
       },
       "global preferences persist across restart",
