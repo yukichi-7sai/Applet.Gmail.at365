@@ -1,5 +1,21 @@
 # 検証記録
 
+## 2026-10-08: 実利用先へのdeploy
+
+- 配置後の実利用について、ユーザーが正常動作を確認したと報告（2026-10-08）。
+
+- ユーザーの明示指示により、AppDockと全6Appletの`deploy.bat`を引数なしで実行し、7件すべて終了コード0。配置先は`A:\00.ESSENTIAL\00.MainTools\AppDock.at365`。5つの.NET Appletは現ソース/SDKで`publish.bat`を先に実行し、Gmailはdeploy内で再発行した。
+- AppDock0.16.2、Gmail0.5.1、WallpaperSlideshow0.3.0、Watch0.1.1（native）、WebBrowserTools0.2.4、WindowMover0.2.1、WindowsTools0.1.1を配置。Watchの古いDLL版manifestを配置せず、現ソースのnative版へ更新。
+- 配置対象21ファイルのSHA256はすべて発行元と一致。現ソースと配置manifestの版/runtime/entry、minimumHostVersionも照合。settings.json・avatar.png・Gmail accounts.jsonの3ファイルは配置前後のハッシュ不変。
+- 配置前後とも関連プロセスなし。実利用アプリは起動していないため、次回起動で反映する。旧ファイル退避は行わず、設定・認証領域を配置スクリプトで変更していない。結果は`../AppDock.at365/artifacts/deploy-2026-10-08-result.json`（本体では`artifacts/deploy-2026-10-08-result.json`）。
+
+## 2026-10-08: AppDock 0.16.2の依存更新に対する検証
+
+- ホストのElectron 44.6.0、Vite 8.3.3、@vitejs/plugin-react 6.1.2、pnpm 12.10.1を使用。独自の外部npm依存はなく、ホストの共通依存を使用する。Gmailのバージョン/最低ホスト版/設定仕様は変更なし。
+- `publish.bat -Test`で型検査・Vite・20/20回帰成功。オフラインのaccounts-1791435471926とui-features-1791435496597で画像/認証枠分離、前面を変えない切替、個別監視、検索/未読/削除反映、キー、テーマ、通知音コピー、順序/入力/位置/サイズの保存成功。
+- `test-native-background.cjs --packed-core`のnative-background-1791435598245はPlaywrightなしの通常Electronで最終発行app.asarを使用。未表示2枠の初回描画・自身の状態更新・選択保持・reload・認証解除・終了成功。
+- `test-portable.cjs`のportable-1791435656782は最終単一EXE0.16.2、ok:true/exitCode0。WebContentsView・到着判定・停止/再開・正常終了成功。実Gmailのメール/認証にはアクセスせず、実利用先deployなし。詳細は[本体検証記録](../AppDock.at365/VERIFICATION.md)を参照。
+
 ## 2026-10-08: 0.5.1 右上のアバター一致・切替のフォーカス保持
 
 - 0.5.0の画像要求はcredentials:omitだった。実Gmailの右上画像URLを未認証で取り直すとGoogleの標準画像が返り、取得成功/PNG有無だけでは正しい画像の証拠にならなかった。AppDock 0.16.1は当該アカウント固有のsessionとcredentials:includeを使用する。転送先の厳密なorigin、最大3転送/5秒/64KBの境界は維持し、Cookie値をUI・Node・診断へ出力しない。
