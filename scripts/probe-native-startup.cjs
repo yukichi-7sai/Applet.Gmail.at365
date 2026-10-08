@@ -105,6 +105,12 @@ const actions = {
       const summary = await evaluate(
         `(()=>{try{const c=process.mainModule.require(${JSON.stringify(path.join(host, "out/main/main/core/web-accounts"))}).getWebAccounts('at365.gmail');return {pending:c.snapshot().accounts.map(a=>a.data?.pending??0),avatars:c.snapshot().accounts.map(a=>a.avatar.startsWith('data:image/png;base64,')),monitoring:c.snapshot().accounts.map(a=>a.monitoring),uiOpened:electron.BrowserWindow.getAllWindows().some(w=>w.webContents.getURL().includes('/web/index.html')),hardwareAcceleration:electron.app.isHardwareAccelerationEnabled()};}catch{return null;}})()`,
       );
+      if (process.argv.includes("--avatar-match") && i === 2) {
+        const matches = await evaluate(
+          `(async()=>{const c=process.mainModule.require(${JSON.stringify(path.join(host, "out/main/main/core/web-accounts"))}).getWebAccounts('at365.gmail');return process.mainModule.require(${JSON.stringify(path.join(root, "scripts/avatar-match.cjs"))})(electron,c,${JSON.stringify(path.join(root, "artifacts/avatar-match-live"))});})()`,
+        );
+        console.log(JSON.stringify({ avatarMatch: matches }));
+      }
       const value = { elapsedSeconds: (i + 1) * 5, phase, pages, summary };
       samples.push(value);
       fs.writeFileSync(resultFile, JSON.stringify(samples, null, 2));

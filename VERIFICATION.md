@@ -1,5 +1,14 @@
 # 検証記録
 
+## 2026-10-08: 0.5.1 右上のアバター一致・切替のフォーカス保持
+
+- 0.5.0の画像要求はcredentials:omitだった。実Gmailの右上画像URLを未認証で取り直すとGoogleの標準画像が返り、取得成功/PNG有無だけでは正しい画像の証拠にならなかった。AppDock 0.16.1は当該アカウント固有のsessionとcredentials:includeを使用する。転送先の厳密なorigin、最大3転送/5秒/64KBの境界は維持し、Cookie値をUI・Node・診断へ出力しない。
+- 実Gmailの右上画像だけをcapturePageで切り出し、匿名取得/認証済み取得/修正後の画像を比較した。対象枠の未認証画像は860 bytesの標準画像、認証済み画像は8,411 bytesの設定済みアバター。修正後は右上と同じアバターを目視確認した（`artifacts/avatar-match-live/result.json`と同フォルダーの画像）。別枠は右上自体が標準画像で、両取得で一致した。名前・画像URL・Cookie・メール本文を診断へ出力せず、実メールの送信/削除/既読変更なし。
+- 切替コマンドのcycleからopen/focusを除去。既存Viewとselectedだけを変更し、初回未表示はUIを作成せず、表示中でも前面に出さず、最小化/非表示を保持する。「Gmailを開く」の明示操作は従来の表示動作を維持する。
+- 型検査/Vite、ホスト90/90・Gmail20/20成功。最終win-unpacked EXEの`artifacts/accounts-1791424612946/result.json`で、アカウントごとのCookie jarと画像要求の認証ポリシー、色の異なる画像の分離、未表示/表示/最小化/非表示で別Windowの前面/フォーカス保持、既存の並べ替え・監視・再起動・画像差替え・10枠上限を確認。custom protocolのRequestはCookieヘッダーを公開しないため、fixtureはnative要求の認証ポリシーと当該sessionのCookie jarでサーバーを再現する。
+- 最終既存UI回帰: `artifacts/ui-features-1791424637416/result.json`（ローカル/remoteの既定・変更キー、検索/未読、メールを開く、音/テーマ/位置保存等）。最終単一EXE: `artifacts/portable-1791424613849/result.json`（本体0.16.1、exitCode0、停止/再開/正常終了）。新規試験の実行位置ミスを修正して全試験終了前だけに検証するよう直し、連続保存のWindows EPERMはfixtureの操作間隔を確保して再検証した。
+- 最終EXE100,446,218 bytes、SHA256 `8D5243653108108368DD5E04CC2C12DCBA688B4C028D07A53E6CF2CFF02C4B7F`。.NET framework-dependentクリーン発行、Runtime混入なし。Gmail0.5.1は最低host0.16.1。開発用publish/extensionsへ全資産のSHA256を照合して配置。Prettier/diff check成功、関連文書のローカルリンク65件成功。既存の未配置GmailCheckerへの参照は確認不可。実利用先deploy/外部pushなし。長期常駐・スリープ復帰は未確認。
+
 ## 2026-10-08: 0.5.0 アカウント管理・アバター・個別監視
 
 - AppDock 0.16.0とGmail 0.5.0。アカウントを上下に並べ替え、一覧と循環切替に保存順を使用。UUID・選択・ログイン領域・通知音を維持する。追加ボタンはアカウント設定中だけ表示し、追加後はログイン用の受信トレイへ移る。表示名はEnter保存・未保存変更の取消に対応。

@@ -39,6 +39,8 @@ Gmail開発profileはハードウェアアクセラレーションをオフに�
 
 ## 構成と設計
 
+0.5.1はAppDock 0.16.1を必要とします。画像要求は当該sessionのcredentials:includeで行い、未認証の標準画像への置換を防ぎます。切替コマンドのcycleはopen/focusを呼びません。test-accountsは認証ポリシー/セッションのfixtureと、別Windowを前面にしたまま未表示/表示/最小化/非表示でコマンドを実行する検証を追加しました。画像比較はprobe-native-startup --duration=20000 --avatar-matchで、右上の画像領域だけをcapturePageし、匿名/ログイン済み取得と照合します。画像やURL/名前/認証値を診断出力せず、artifacts/avatar-match-liveのローカル画像と数値を確認してください。
+
 0.5.0はAppDock 0.16.0のmove/setMonitoringを使います。settingsの全体monitoringとreadの各枠monitoringをANDで判定し、monitoringResetsを受けたmonitorはONでもresetします。個別OFFの即時UIクリアと古いreportの抑制はホスト、検知・音・通知の抑制はAppletです。順番と個別監視はUUID/ログイン領域を保持してaccounts.jsonへ保存します。Reactの監視スイッチは即時表示し、保存失敗時に戻します。表示名はEnter保存と未保存変更の取消に対応します。
 
 observer V6はGmailヘッダーのSignOutOptions/Googleアカウントリンク内の画像だけを読み取ります。送信者アイコンやアカウント選択メニューは対象外です。画像URLはlh3〜lh6.googleusercontent.comとlh3〜lh6.google.comに限定し、ホストのavatarOriginsで再検証します。URLは観測データ、取得後の64px画像はホストのメモリー内に置き、Node readへ画像バイトを送信しません。メール本文/プレビューは従来どおり対象外です。

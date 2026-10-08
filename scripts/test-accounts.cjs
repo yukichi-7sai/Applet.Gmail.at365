@@ -38,6 +38,19 @@ const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 let app, dock, ui;
 const snapshot = () => ui.evaluate(() => window.webAccounts.snapshot());
+async function cycleCommand(direction) {
+  // Let Windows release the previous atomic save before another fixture write.
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  await dock.evaluate(
+    (direction) =>
+      window.dock.executeCommand(
+        direction === 1
+          ? "at365.gmail.nextAccount"
+          : "at365.gmail.previousAccount",
+      ),
+    direction,
+  );
+}
 async function until(fn, message) {
   const deadline = Date.now() + 20000;
   while (Date.now() < deadline) {
@@ -63,8 +76,23 @@ async function launch() {
   });
   dock = await app.firstWindow();
   await dock.waitForFunction(() => !!window.dock);
-  await app.evaluate(({ app, nativeImage }, accounts) => {
+  await app.evaluate(({ app, nativeImage, net }, accounts) => {
     globalThis.accountFixtureReads = 0;
+    // Electron's custom protocol Request omits Cookie headers. Record the
+    // native request's policy and combine it with that session's cookie jar.
+    const authenticatedRequests = new WeakMap();
+    const originalRequest = net.request;
+    net.request = (options) => {
+      if (
+        typeof options === "object" &&
+        /^https:\/\/lh3\.(google|googleusercontent)\.com\//.test(options.url)
+      )
+        authenticatedRequests.set(
+          options.session,
+          options.credentials === "include",
+        );
+      return originalRequest(options);
+    };
     app.on("session-created", (ses) => {
       if (!ses.isPersistent()) return;
       const index = accounts.findIndex((a) => ses.storagePath.endsWith(a.id));
@@ -76,7 +104,26 @@ async function launch() {
       const png = nativeImage
         .createFromBitmap(pixels, { width: 16, height: 16 })
         .toPNG();
-      ses.protocol.handle("https", (req) => {
+      const anonymous = nativeImage
+        .createFromBitmap(Buffer.alloc(4 * 16 * 16, 127), {
+          width: 16,
+          height: 16,
+        })
+        .toPNG();
+      const cookiesReady = Promise.all(
+        ["https://lh3.google.com", "https://lh3.googleusercontent.com"].map(
+          (url) =>
+            ses.cookies.set({
+              url,
+              name: "avatar_scope",
+              value: String(index),
+              secure: true,
+              sameSite: "no_restriction",
+            }),
+        ),
+      );
+      ses.protocol.handle("https", async (req) => {
+        await cookiesReady;
         const u = new URL(req.url);
         if (u.hostname === "lh3.google.com")
           return new Response(null, {
@@ -87,9 +134,17 @@ async function launch() {
             },
           });
         if (u.hostname === "lh3.googleusercontent.com")
-          return new Response(png, {
-            headers: { "content-type": "image/png" },
-          });
+          return new Response(
+            authenticatedRequests.get(ses) &&
+              (await ses.cookies.get({ url: req.url })).some(
+                (c) => c.name === "avatar_scope" && c.value === String(index),
+              )
+              ? png
+              : anonymous,
+            {
+              headers: { "content-type": "image/png" },
+            },
+          );
         return new Response(
           `<!doctype html><html><body><header><a href="https://accounts.google.com/SignOutOptions?fixture=1" aria-label="Google アカウント: Fixture"><img width="32" height="32" src="https://${index === 1 ? "lh3.google.com" : "lh3.googleusercontent.com"}/a/fixture-${index}=s64-c"></a></header>
         <main role="main"><table><tbody><tr class="zA zE"><td><span class="bog" data-legacy-thread-id="seed">Fixture unread</span></td></tr></tbody></table></main></body></html>`,
@@ -105,6 +160,31 @@ async function launch() {
         (e) => e.id === "at365.gmail" && e.state === "running",
       ),
     "activation",
+  );
+  await app.evaluate(({ BrowserWindow }) => {
+    globalThis.focusSentinel = new BrowserWindow({
+      width: 320,
+      height: 160,
+      title: "Account focus fixture",
+      show: true,
+    });
+    focusSentinel.focus();
+  });
+  await until(
+    () => app.evaluate(() => focusSentinel.isFocused()),
+    "foreground sentinel",
+  );
+  await cycleCommand(1);
+  await cycleCommand(-1);
+  assert.equal(
+    await app.evaluate(
+      ({ BrowserWindow }) =>
+        !BrowserWindow.getAllWindows().some((w) =>
+          w.webContents.getURL().includes("/web/index.html"),
+        ) && focusSentinel.isFocused(),
+    ),
+    true,
+    "cycling before first open preserves foreground and creates no Gmail window",
   );
   await dock.evaluate(() => window.dock.executeCommand("at365.gmail.open"));
   await until(() => {
@@ -143,6 +223,22 @@ async function remote(id, code) {
 (async () => {
   try {
     await launch();
+    const color = await app.evaluate(
+      ({ nativeImage }, images) =>
+        images.map((a) => {
+          const p = nativeImage.createFromDataURL(a.avatar).toBitmap();
+          return [...p.subarray(0, 4)];
+        }),
+      (await snapshot()).accounts,
+    );
+    assert.deepEqual(
+      color,
+      [
+        [0, 0, 230, 255],
+        [230, 0, 0, 255],
+      ],
+      "avatars use the correct session cookies, not anonymous/default images",
+    );
     assert.ok(
       (await snapshot()).accounts.every((a) => a.monitoring),
       "old account files default to ON",
@@ -165,6 +261,49 @@ async function remote(id, code) {
           ),
         ),
     );
+    for (const state of ["visible", "minimized", "hidden"]) {
+      const initial = (await snapshot()).selected;
+      await app.evaluate(({ BrowserWindow }, state) => {
+        const w = BrowserWindow.getAllWindows().find((w) =>
+          w.webContents.getURL().includes("/web/index.html"),
+        );
+        if (state === "minimized") w.minimize();
+        if (state === "hidden") w.hide();
+        focusSentinel.focus();
+      }, state);
+      await until(
+        () => app.evaluate(() => focusSentinel.isFocused()),
+        "foreground sentinel for " + state,
+      );
+      await cycleCommand(1);
+      await until(
+        async () => (await snapshot()).selected !== initial,
+        "background cycle " + state,
+      );
+      assert.equal(
+        await app.evaluate(({ BrowserWindow }, state) => {
+          const w = BrowserWindow.getAllWindows().find((w) =>
+            w.webContents.getURL().includes("/web/index.html"),
+          );
+          return (
+            focusSentinel.isFocused() &&
+            !w.isFocused() &&
+            (state !== "minimized" || w.isMinimized()) &&
+            (state !== "hidden" || !w.isVisible())
+          );
+        }, state),
+        true,
+        "cycle preserves " + state + " and foreground",
+      );
+      await cycleCommand(-1);
+    }
+    await app.evaluate(({ BrowserWindow }) => {
+      const w = BrowserWindow.getAllWindows().find((w) =>
+        w.webContents.getURL().includes("/web/index.html"),
+      );
+      w.restore();
+      w.show();
+    });
     await ui.getByRole("button", { name: /^新着一覧/ }).click();
     assert.equal(await add.count(), 0, "add hidden in arrivals");
     await ui
@@ -345,6 +484,8 @@ async function remote(id, code) {
           checks: [
             "legacy default ON",
             "header avatars and fallback",
+            "authenticated avatar requests in isolated account sessions",
+            "cycle preserves foreground and never opens/restores Gmail",
             "settings-only add",
             "reorder and cycle",
             "per-account OFF/resume and isolation",
