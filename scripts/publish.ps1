@@ -9,3 +9,5 @@ $arguments = @((Join-Path $PSScriptRoot 'build.cjs'))
 if ($Test) { $arguments += '--test' }
 & $node @arguments
 if ($LASTEXITCODE -ne 0) { throw "Build failed: $LASTEXITCODE" }
+
+& (Join-Path $hostRoot 'scripts\pack-applet-update.ps1') -SourceDirectory (Join-Path $root 'publish\Applet.Gmail.at365') -OutputDirectory (Join-Path $root 'publish')

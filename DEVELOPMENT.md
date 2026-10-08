@@ -107,3 +107,11 @@ Google認証の許可先には`https://accounts.youtube.com`も含めます。[G
 0.9.0はAppDock0.20.0のcontext.webAccounts.navigate(action)を利用し、4コマンドとUIの操作を同じホスト実装へ渡します。snapshot.navigationRevisionの変更で受信トレイタブへ戻ります。showToolbarは全タブのtoolbarとmain領域、account-list-offsetは受信トレイ基準の固定余白です。ビルド時にpackage.jsonの版をVite defineへ渡し、重複した版定数を持ちません。externalLinkSettingは自身のboolean設定を宣言し、確認チェックをホストの設定保存経路へ渡します。scripts/test-toolbar.cjsは通知オブジェクトのshow/外部アプリ呼出し/確認だけを隔離fixtureへ置き換え、実click handler・コマンド・WebContentsと永続設定を確認します。
 
 新着一覧のunreadOnlyはmanifestのboolean設定として保存します。UIの「未読だけ」と「絞り込みを解除」、AppDock側設定は同じ値へ反映し、保存失敗時は下書きを戻します。監視・履歴・未読集計のデータは変更しません。
+
+## 更新配布物の発行
+
+`publish.bat`は通常の発行先を生成した後、兄弟のAppDockリポジトリにある`scripts/pack-applet-update.ps1`で`publish/update.json`と`publish/update.zip`を自動生成します。共通パッカーのビルドに.NET 10 SDKが必要です。Gmail以外のAppletは、このパッケージ生成のためにNode.jsを導入する必要はありません。
+
+ZIP直下に`extension.json`と実行ファイル一式を置き、JSONにID・版・必要な本体版・ZIPのサイズとSHA256を記録します。`OutputDirectory`を指定できる発行スクリプトでも、指定先の配布内容を読み、更新用JSON/ZIPの出力先はこのリポジトリの`publish`です。通常配置用サブフォルダーへJSON/ZIPを混ぜず、`deploy.bat`の配置対象も増やしません。
+
+Web配布やGitHub Releaseには同じ発行で生成したJSONとZIPを一緒に置き、JSONを最後に公開してください。ソースコードの自動生成ZIPは使用しません。発行スクリプトから外部公開は行いません。[共通更新仕様](../AppDock.at365/docs/updates.md)と[配布先の確認手順](../AppDock.at365/docs/update-checklist.md)を参照してください。
