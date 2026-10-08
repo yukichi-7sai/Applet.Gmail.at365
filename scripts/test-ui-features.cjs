@@ -336,10 +336,56 @@ async function close() {
       async () => (await snapshot()).selected === accounts[0].id,
       "Ctrl+Tab inside Gmail",
     );
-    await key(accounts[0].id, true);
+    // The former fixture focused each destination before sending a key. That
+    // masked the loss of input focus after the first account switch.
+    async function focusedKey(shift = false) {
+      await app.evaluate(({ webContents }, shift) => {
+        const wc = webContents.getFocusedWebContents();
+        if (!wc?.getURL().startsWith("https://mail.google.com"))
+          throw Error("Account switch lost Gmail input focus");
+        for (const type of ["keyDown", "keyUp"])
+          wc.sendInputEvent({
+            type,
+            keyCode: "Tab",
+            modifiers: shift ? ["control", "shift"] : ["control"],
+          });
+      }, shift);
+    }
+    for (const expected of [
+      accounts[1].id,
+      accounts[0].id,
+      accounts[1].id,
+      accounts[0].id,
+    ]) {
+      assert.equal(
+        await app.evaluate(({ webContents }) =>
+          webContents
+            .getFocusedWebContents()
+            ?.session.storagePath.split(/[\\/]/)
+            .at(-1),
+        ),
+        (await snapshot()).selected,
+      );
+      await focusedKey();
+      await until(
+        async () => (await snapshot()).selected === expected,
+        "Repeated Ctrl+Tab without clicking",
+      );
+    }
+    await focusedKey(true);
     await until(
       async () => (await snapshot()).selected === accounts[1].id,
       "Ctrl+Shift+Tab inside Gmail",
+    );
+    await focusedKey(true);
+    await until(
+      async () => (await snapshot()).selected === accounts[0].id,
+      "Repeated previous without clicking",
+    );
+    await focusedKey();
+    await until(
+      async () => (await snapshot()).selected === accounts[1].id,
+      "Restore account after repeated keys",
     );
     await ui.getByRole("button", { name: /^新着一覧/ }).click();
     await key(null);

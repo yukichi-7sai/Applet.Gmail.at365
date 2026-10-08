@@ -157,6 +157,7 @@ delete env.ELECTRON_RUN_AS_NODE;
       readItemCheck,
       startupBeforeUi,
       accounts: data.accounts.map((a) => ({
+        accountNameDetected: !!a.observation?.accountName,
         loading: a.loading,
         error: a.error,
         status: a.status,

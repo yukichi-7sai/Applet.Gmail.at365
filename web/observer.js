@@ -1,6 +1,6 @@
 (() => {
   // Isolated world 1001: no Electron/Node APIs, no IPC, and no authentication code.
-  const slot = "__at365GmailObserverV6";
+  const slot = "__at365GmailObserverV7";
   let state = globalThis[slot];
   if (!state) {
     state = {
@@ -53,6 +53,33 @@
       'a[href^="https://accounts.google.com/SignOutOptions"] img, a[aria-label^="Google アカウント"] img, a[aria-label^="Google Account"] img',
     ),
   ].find(visible);
+  // Identify the current signed-in account from its own header accessibility
+  // label. Never inspect sender names, mail content or the account chooser.
+  const profileLink =
+    profileImage?.closest("a") ||
+    [
+      ...document.querySelectorAll(
+        'a[href^="https://accounts.google.com/SignOutOptions"], a[aria-label^="Google アカウント"], a[aria-label^="Google Account"]',
+      ),
+    ].find(visible);
+  const label = (profileLink?.getAttribute("aria-label") || "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const email = label.match(/[^\s()<>]+@[^\s()<>]+/u)?.[0] || "";
+  const profileName = /^Google (?:アカウント|Account)\s*[:：]/i.test(label)
+    ? label
+        .replace(/^Google (?:アカウント|Account)\s*[:：]\s*/i, "")
+        .replace(/\s*\([^()]*@[^()]*\)\s*$/, "")
+        .replace(email, "")
+        .trim()
+    : "";
+  const accountName =
+    location.origin === "https://mail.google.com" &&
+    /^\/mail\/u\/\d+\/$/.test(location.pathname) &&
+    email
+      ? (profileName || email).slice(0, 60)
+      : "";
   let avatar = "";
   try {
     const url = new URL(profileImage?.currentSrc || profileImage?.src || "");
@@ -64,6 +91,7 @@
   } catch {}
   const base = {
     avatar,
+    accountName,
     context,
     document: state.document,
     revision: state.revision,
@@ -82,7 +110,7 @@
   )
     return { ...base, ready: false, reason: "settling" };
   if (state.cache && state.cache.context === context)
-    return { ...state.cache, avatar };
+    return { ...state.cache, avatar, accountName };
   const rows = [...main.querySelectorAll('tr.zA, [role="row"]')].filter(
     visible,
   );

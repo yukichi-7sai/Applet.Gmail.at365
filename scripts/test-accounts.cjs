@@ -146,7 +146,7 @@ async function launch() {
             },
           );
         return new Response(
-          `<!doctype html><html><body><header><a href="https://accounts.google.com/SignOutOptions?fixture=1" aria-label="Google アカウント: Fixture"><img width="32" height="32" src="https://${index === 1 ? "lh3.google.com" : "lh3.googleusercontent.com"}/a/fixture-${index}=s64-c"></a></header>
+          `<!doctype html><html><body><header><a href="https://accounts.google.com/SignOutOptions?fixture=1" aria-label="${index < 0 ? "Google アカウント" : "Google アカウント: Fixture (existing@example.test)"}"><img width="32" height="32" src="https://${index === 1 ? "lh3.google.com" : "lh3.googleusercontent.com"}/a/fixture-${index}=s64-c"></a></header>
         <main role="main"><table><tbody><tr class="zA zE"><td><span class="bog" data-legacy-thread-id="seed">Fixture unread</span></td></tr></tbody></table></main></body></html>`,
           { headers: { "content-type": "text/html; charset=utf-8" } },
         );
@@ -458,7 +458,90 @@ async function remote(id, code) {
       "add account",
     );
     assert.equal(await add.count(), 0, "addition opens login/inbox");
-    for (let i = 3; i < 10; i++)
+    const addedId = (await snapshot()).selected;
+    assert.equal(
+      (await snapshot()).accounts.find((a) => a.id === addedId).name,
+      "新しいアカウント",
+    );
+    await until(
+      async () =>
+        (await snapshot()).accounts.find((a) => a.id === addedId).observation
+          ?.ready,
+      "new account page ready",
+    );
+    await remote(
+      addedId,
+      `document.querySelector('header a').setAttribute('aria-label', 'Google アカウント: ログイン後の名前\\n(new@example.test)')`,
+    );
+    await until(
+      async () =>
+        (await snapshot()).accounts.find((a) => a.id === addedId).name ===
+        "ログイン後の名前",
+      "temporary name becomes Gmail name",
+    );
+    await remote(
+      addedId,
+      `document.querySelector('header a').setAttribute('aria-label', 'Google Account: Changed (changed@example.test)')`,
+    );
+    await new Promise((r) => setTimeout(r, 2300));
+    assert.equal(
+      (await snapshot()).accounts.find((a) => a.id === addedId).name,
+      "ログイン後の名前",
+      "resolved name is not renamed again",
+    );
+    await ui.evaluate(() => window.webAccounts.add());
+    const emailId = (await snapshot()).selected;
+    await until(
+      async () =>
+        (await snapshot()).accounts.find((a) => a.id === emailId).observation
+          ?.ready,
+      "email account page ready",
+    );
+    await remote(
+      emailId,
+      `document.querySelector('header a').setAttribute('aria-label', 'Google Account: (email-only@example.test)')`,
+    );
+    await until(
+      async () =>
+        (await snapshot()).accounts.find((a) => a.id === emailId).name ===
+        "email-only@example.test",
+      "email fallback",
+    );
+    await ui.evaluate(() => window.webAccounts.add());
+    const manualId = (await snapshot()).selected;
+    await ui.evaluate(
+      (id) => window.webAccounts.rename(id, "手動の名前"),
+      manualId,
+    );
+    await until(
+      async () =>
+        (await snapshot()).accounts.find((a) => a.id === manualId).observation
+          ?.ready,
+      "manual account page ready",
+    );
+    await remote(
+      manualId,
+      `document.querySelector('header a').setAttribute('aria-label', 'Google Account: Ignored (ignored@example.test)')`,
+    );
+    await new Promise((r) => setTimeout(r, 2300));
+    assert.equal(
+      (await snapshot()).accounts.find((a) => a.id === manualId).name,
+      "手動の名前",
+      "manual pre-login name is preserved",
+    );
+    await close();
+    await launch();
+    add = ui.getByRole("button", { name: "＋ アカウントを追加", exact: true });
+    assert.equal(
+      (await snapshot()).accounts.find((a) => a.id === addedId).name,
+      "ログイン後の名前",
+      "automatic name persists after restart",
+    );
+    assert.equal(
+      (await snapshot()).accounts.find((a) => a.id === manualId).name,
+      "手動の名前",
+    );
+    for (let i = 5; i < 10; i++)
       await ui.evaluate(() => window.webAccounts.add());
     await ui
       .getByRole("button", { name: "アカウント設定", exact: true })
@@ -490,6 +573,7 @@ async function remote(id, code) {
             "reorder and cycle",
             "per-account OFF/resume and isolation",
             "name draft/Enter",
+            "temporary Gmail name, email fallback, manual override and restart",
             "restart persistence",
             "900x640 dark/light",
             "ten account limit",

@@ -4,6 +4,8 @@
 
 ## 環境・発行
 
+0.5.2はAppDock 0.16.3が必要です。observer V7は本人のヘッダーリンクのaria-labelから名前とメールアドレスを読み、ログイン済みの/mail/u/N/でのみaccountNameを返します。日本語/英語のGoogleアカウント表示に対応し、名前がなければメールを使用、結果は60文字まで。送信者やアカウント選択メニューからは取得しません。ホストは仮名だけを一度更新し、手動renameを優先します。test-accountsは新規仮名/名前/メール/手動名/再起動を、test-ui-featuresは再フォーカスなしの連続切替を検証します。
+
 隣の`../AppDock.at365`に準備済みのローカルNode・TypeScript・Vite・React・Electron・Playwrightを使います。独立したグローバルツールや新規依存のインストールは不要です。
 
 ```powershell
