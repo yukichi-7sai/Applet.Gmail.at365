@@ -30,6 +30,7 @@ const settings = hostRequire(
 settings.host.hardwareAcceleration = false;
 settings.host.notifications = false;
 settings.extensions["at365.gmail"] = {
+  pages: { gmail: { display: "window" } },
   enabled: false,
   settings: { notifications: false },
 };
@@ -180,7 +181,11 @@ async function launch() {
     await app.evaluate(
       ({ BrowserWindow }) =>
         !BrowserWindow.getAllWindows().some((w) =>
-          w.webContents.getURL().includes("/web/index.html"),
+          w.contentView.children.some((v) =>
+            v.children.some((c) =>
+              c.webContents?.getURL().includes("/web/index.html"),
+            ),
+          ),
         ) && focusSentinel.isFocused(),
     ),
     true,
@@ -188,7 +193,10 @@ async function launch() {
   );
   await dock.evaluate(() => window.dock.executeCommand("at365.gmail.open"));
   await until(() => {
-    ui = app.windows().find((p) => p.url().includes("/web/index.html"));
+    ui = app
+      .context()
+      .pages()
+      .find((p) => p.url().includes("/web/index.html"));
     return !!ui;
   }, "Gmail UI");
   await ui.waitForFunction(() => !!window.webAccounts);
@@ -310,7 +318,13 @@ async function remote(id, code) {
     );
     await app.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()
-        .find((w) => w.webContents.getURL().includes("/web/index.html"))
+        .find((w) =>
+          w.contentView.children.some((v) =>
+            v.children.some((c) =>
+              c.webContents?.getURL().includes("/web/index.html"),
+            ),
+          ),
+        )
         .setContentSize(900, 640),
     );
     assert.equal(
@@ -370,7 +384,11 @@ async function remote(id, code) {
       const initial = (await snapshot()).selected;
       await app.evaluate(({ BrowserWindow }, state) => {
         const w = BrowserWindow.getAllWindows().find((w) =>
-          w.webContents.getURL().includes("/web/index.html"),
+          w.contentView.children.some((v) =>
+            v.children.some((c) =>
+              c.webContents?.getURL().includes("/web/index.html"),
+            ),
+          ),
         );
         if (state === "minimized") w.minimize();
         if (state === "hidden") w.hide();
@@ -388,7 +406,11 @@ async function remote(id, code) {
       assert.equal(
         await app.evaluate(({ BrowserWindow }, state) => {
           const w = BrowserWindow.getAllWindows().find((w) =>
-            w.webContents.getURL().includes("/web/index.html"),
+            w.contentView.children.some((v) =>
+              v.children.some((c) =>
+                c.webContents?.getURL().includes("/web/index.html"),
+              ),
+            ),
           );
           return (
             focusSentinel.isFocused() &&
@@ -404,7 +426,11 @@ async function remote(id, code) {
     }
     await app.evaluate(({ BrowserWindow }) => {
       const w = BrowserWindow.getAllWindows().find((w) =>
-        w.webContents.getURL().includes("/web/index.html"),
+        w.contentView.children.some((v) =>
+          v.children.some((c) =>
+            c.webContents?.getURL().includes("/web/index.html"),
+          ),
+        ),
       );
       w.restore();
       w.show();
@@ -488,7 +514,13 @@ async function remote(id, code) {
     );
     await app.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()
-        .find((w) => w.webContents.getURL().includes("/web/index.html"))
+        .find((w) =>
+          w.contentView.children.some((v) =>
+            v.children.some((c) =>
+              c.webContents?.getURL().includes("/web/index.html"),
+            ),
+          ),
+        )
         .setContentSize(900, 640),
     );
     await ui.locator(".account-order").scrollIntoViewIfNeeded();

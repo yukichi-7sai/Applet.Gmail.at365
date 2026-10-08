@@ -15,6 +15,7 @@ const settings = hostRequire(
 ).createDefaultSettings();
 settings.host.hardwareAcceleration = false;
 settings.extensions["at365.gmail"] = {
+  pages: { gmail: { display: "window" } },
   enabled: false,
   settings: { notifications: false },
 };
@@ -96,7 +97,10 @@ async function launch(startupUnread = false) {
   );
   await dock.evaluate(() => window.dock.executeCommand("at365.gmail.open"));
   await until(async () => {
-    ui = app.windows().find((p) => p.url().includes("/web/index.html"));
+    ui = app
+      .context()
+      .pages()
+      .find((p) => p.url().includes("/web/index.html"));
     return !!ui;
   }, "local Gmail UI window");
   await ui.waitForFunction(() => !!window.webAccounts);
@@ -152,9 +156,18 @@ async function launch(startupUnread = false) {
       () =>
         app.evaluate(
           ({ BrowserWindow }) =>
-            BrowserWindow.getAllWindows().find((w) =>
-              w.webContents.getURL().includes("/web/index.html"),
-            ).contentView.children.length === 0,
+            BrowserWindow.getAllWindows()
+              .find((w) =>
+                w.contentView.children.some((v) =>
+                  v.children.some((c) =>
+                    c.webContents?.getURL().includes("/web/index.html"),
+                  ),
+                ),
+              )
+              .contentView.children.flatMap((v) => v.children)
+              .filter((v) =>
+                v.webContents?.getURL().startsWith("https://mail.google.com"),
+              ).length === 0,
         ),
       "history hides native Gmail view",
     );
@@ -180,8 +193,18 @@ async function launch(startupUnread = false) {
       () =>
         app.evaluate(({ BrowserWindow }) =>
           BrowserWindow.getAllWindows()
-            .find((w) => w.webContents.getURL().includes("/web/index.html"))
-            .contentView.children[0].getVisible(),
+            .find((w) =>
+              w.contentView.children.some((v) =>
+                v.children.some((c) =>
+                  c.webContents?.getURL().includes("/web/index.html"),
+                ),
+              ),
+            )
+            .contentView.children.flatMap((v) => v.children)
+            .find((v) =>
+              v.webContents?.getURL().startsWith("https://mail.google.com"),
+            )
+            .getVisible(),
         ),
       "return shows native Gmail view",
     );
@@ -234,12 +257,21 @@ async function launch(startupUnread = false) {
     assert.equal((await snapshot()).accounts[0].attention, false);
     const bounds = await app.evaluate(({ BrowserWindow }) => {
       const w = BrowserWindow.getAllWindows().find((w) =>
-        w.webContents.getURL().includes("/web/index.html"),
+        w.contentView.children.some((v) =>
+          v.children.some((c) =>
+            c.webContents?.getURL().includes("/web/index.html"),
+          ),
+        ),
       );
       w.setContentSize(900, 640);
       return {
         window: w.getContentSize(),
-        view: w.contentView.children[0].getBounds(),
+        view: w.contentView.children
+          .flatMap((v) => v.children)
+          .find((v) =>
+            v.webContents?.getURL().startsWith("https://mail.google.com"),
+          )
+          .getBounds(),
       };
     });
     assert.deepEqual(bounds, {
@@ -291,7 +323,7 @@ async function launch(startupUnread = false) {
     await ui.getByRole("button", { name: /^新着一覧/ }).click();
     await ui
       .locator(".filters")
-      .getByRole("button", { name: "アカウント 2", exact: true })
+      .getByRole("button", { name: "新しいアカウント", exact: true })
       .click();
     await ui.getByRole("heading", { name: "新着を待っています" }).waitFor();
     await remote(
@@ -358,7 +390,17 @@ async function launch(startupUnread = false) {
       return (await wc.session.cookies.get({ name: "fixture-login" })).length;
     }, second);
     assert.equal(cookieCount, 0);
-    await ui.evaluate(() => window.close());
+    await app.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()
+        .find((w) =>
+          w.contentView.children.some((v) =>
+            v.children.some((c) =>
+              c.webContents?.getURL().includes("/web/index.html"),
+            ),
+          ),
+        )
+        .close(),
+    );
     await remote(
       second,
       'document.querySelector("tbody").insertAdjacentHTML("afterbegin", `<tr class="zA zE"><td data-legacy-thread-id="background-new">background arrival</td></tr>`)',

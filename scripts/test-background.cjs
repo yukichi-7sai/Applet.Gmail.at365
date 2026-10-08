@@ -26,6 +26,7 @@ const settings = hostRequire(
 ).createDefaultSettings();
 settings.host.hardwareAcceleration = false;
 settings.extensions["at365.gmail"] = {
+  pages: { gmail: { display: "window" } },
   enabled: false,
   settings: { notifications: false },
 };
@@ -153,7 +154,10 @@ const remoteStates = () =>
     );
     await dock.evaluate(() => window.dock.executeCommand("at365.gmail.open"));
     await until(async () => {
-      ui = app.windows().find((p) => p.url().includes("/web/index.html"));
+      ui = app
+        .context()
+        .pages()
+        .find((p) => p.url().includes("/web/index.html"));
       return !!ui;
     }, "Gmail UI");
     await until(
@@ -197,15 +201,28 @@ const remoteStates = () =>
       () =>
         app.evaluate(
           ({ BrowserWindow }) =>
-            BrowserWindow.getAllWindows().find((w) =>
-              w.webContents.getURL().includes("/web/index.html"),
-            ).contentView.children.length === 1,
+            BrowserWindow.getAllWindows()
+              .find((w) =>
+                w.contentView.children.some((v) =>
+                  v.children.some((c) =>
+                    c.webContents?.getURL().includes("/web/index.html"),
+                  ),
+                ),
+              )
+              .contentView.children.flatMap((v) => v.children)
+              .filter((v) =>
+                v.webContents?.getURL().startsWith("https://mail.google.com"),
+              ).length === 1,
         ),
       "selected view returns to UI",
     );
     const hidden = await app.evaluate(({ BrowserWindow }) => {
       const w = BrowserWindow.getAllWindows().find((w) =>
-        w.webContents.getURL().includes("/web/index.html"),
+        w.contentView.children.some((v) =>
+          v.children.some((c) =>
+            c.webContents?.getURL().includes("/web/index.html"),
+          ),
+        ),
       );
       w.close();
       return { destroyed: w.isDestroyed(), visible: w.isVisible() };
@@ -234,7 +251,11 @@ const remoteStates = () =>
     );
     await app.evaluate(({ BrowserWindow }) => {
       const w = BrowserWindow.getAllWindows().find((w) =>
-        w.webContents.getURL().includes("/web/index.html"),
+        w.contentView.children.some((v) =>
+          v.children.some((c) =>
+            c.webContents?.getURL().includes("/web/index.html"),
+          ),
+        ),
       );
       w.show();
       w.minimize();

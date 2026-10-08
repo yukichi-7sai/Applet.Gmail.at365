@@ -96,3 +96,9 @@ Google認証の許可先には`https://accounts.youtube.com`も含めます。[G
 既存のElectron表示テストで実ログインを確認でき、AppDockもElectronなのでWebContentsViewを採用しました。WebView2 Evergreenを別途導入する必要がなく、UI/起動/保存領域をホストに揃えられます。Gmail固有のセレクターと判定はAppletへ置き、ホストはWebサービスごとの宣言を受ける構成です。
 
 0.2.0はAppDock 0.13.0の`report(..., data)`と`viewport`を使用します。送信元・件名はメモリー内のローカルUI向けreportへ渡し、診断には残しません。通知への詳細表示は`notificationDetails: false`を既定とし、通知設定変更では基準・履歴を消去しません。将来の本文取得→ローカルLLM→TTSは独立した取消可能なジョブとして扱い、DOM読取と通知を待たせません。検知したスレッド更新数と実メール件数は別の値です。
+
+## 0.7.0のページ表示
+
+最低AppDockは0.18.0です。manifestにpages capabilityとsource:web-accountsのgmailページ、既存openコマンドを宣言します。React UI・監視・通知は共用し、表示先とログイン済みViewの載せ替えはホストが担当します。表示方法はAppletの一般設定値と別にextensions.at365.gmail.pages.gmail.displayへ保存します。詳細は[ホストのAppletページAPI](../AppDock.at365/docs/applet-pages.md)を参照してください。
+
+ホストのscripts/applet-pages-ui-test.cjsは本体ページを検証します。既存Gmailのtest-gui/test-accounts/test-ui-features/test-background/test-auth-redirectは表示方法をwindowへ明示し、Electron contextのpagesから独立UI WebContentsを取得します。WindowはcontentView内のUI所有関係で照合します。GUIを実行する前にホストとAppletをビルドし、試験中にout/mainを再生成しないでください。

@@ -1,5 +1,15 @@
 # 検証記録
 
+## 2026-10-08: v0.7.0 本体ページと別ウィンドウ
+
+- 専用ブランチ`codex/applet-pages-ribbon`。最低ホスト0.18.0、pages capability、gmailページ/リボン名/メールアイコンと既存openCommandを宣言。React UI・DOM観測・監視は共用し、表示先はホストに任せる。
+- main/renderer型検査・Vite・回帰21/21成功、publish/Applet.Gmail.at365を生成。配布物はテストprofileへコピーしただけで、実利用先へは配置していない。
+- 最終発行版の共通ページGUI `../AppDock.at365/artifacts/applet-pages-1791456311809/result.json` はok:true。Gmailの画面/入力/検索/選択アカウント・同一remote WebContents・永続Cookieを保持してpage/windowを切替。ホーム/最小化中の新着と再起動保持、リボンの非表示/並べ替え/設定への復帰、停止時破棄を確認。
+- 従来WindowモードのGUI `artifacts/gui-1791455738683/result.json` と、切替キー・正しいsessionでのメールを開く操作・音の独立/コピー/保持・通常位置/最大化の再起動を含む `artifacts/ui-features-1791455988932/result.json` はok:true。旧試験のUI取得をcontext.pages、Window照合とremote領域をViewの所有関係へ変更。fixtureの仮名は現行「新しいアカウント」。
+- Playwrightなしで発行版coreを使用した `artifacts/native-background-1791455805763/result.json` はok:true。2枠の初回描画/背景のサイト自身の更新/未読集計/非表示reload/認証解除/終了を確認。
+- 最終単一EXEの `artifacts/portable-1791456361645/result.json` はok:true/host0.18.0/exitCode0。未改変Appletでページ表示・新着履歴・クリア・停止/再開・正常終了を確認。EXEは100574904 bytes、SHA256 `E21E8A05CFBE35CC5281F6825CC867739D2325CFA43DDCC0FEE89D2C9E997EF4`。
+- 実Google操作や実メール送信は行っていない。旧版のユーザー確認はその当時の記録として保持し、今回の実アカウント確認とは扱わない。main統合・実利用deploy・外部pushなし。
+
 ## 2026-10-08: v0.6.0 Gmailウィンドウの設定タブ
 
 - ユーザーが「うまくうごいた」と正常動作を報告し、コミットを明示指定（2026-10-08）。確認の詳細を個別項目まで推測せず、今回の設定タブ全体に対する動作確認として記録。検証済みコードに追加変更はない。

@@ -3,12 +3,12 @@
   "id": "at365.gmail",
   "name": "Applet.Gmail.at365",
   "displayName": "Gmail",
-  "version": "0.6.0",
-  "minimumHostVersion": "0.17.1",
+  "version": "0.7.0",
+  "minimumHostVersion": "0.18.0",
   "runtime": "node",
   "entry": "index.js",
   "description": "アカウントごとのGmail Web画面と新着の検知",
-  "capabilities": ["web-accounts", "ui", "settings", "notifications", "tray-attention", "audio", "file-dialog"],
+  "capabilities": ["pages", "web-accounts", "ui", "settings", "notifications", "tray-attention", "audio", "file-dialog"],
   "commands": [
     { "id": "at365.gmail.open", "title": "Gmailを開く", "activateOnExecute": true },
     { "id": "at365.gmail.acknowledge", "title": "新着表示をクリア" },
@@ -26,6 +26,9 @@
       { "label": "40 件 / アカウント", "value": "40" },
       { "label": "50 件 / アカウント", "value": "50" }
     ], "description": "アカウントごとに10〜50件を保持します。減らすと古い履歴を消去します。未読件数の集計には影響しません。" }
+  ],
+  "pages": [
+    { "id": "gmail", "title": "Gmail", "icon": "mail", "source": "web-accounts", "openCommand": "at365.gmail.open", "defaultDisplay": "page" }
   ],
   "webAccounts": {
     "avatarOrigins": ["https://lh3.googleusercontent.com", "https://lh4.googleusercontent.com", "https://lh5.googleusercontent.com", "https://lh6.googleusercontent.com", "https://lh3.google.com", "https://lh4.google.com", "https://lh5.google.com", "https://lh6.google.com"],

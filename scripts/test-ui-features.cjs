@@ -30,6 +30,7 @@ const settings = hostRequire(
 settings.host.hardwareAcceleration = false;
 settings.host.notifications = false;
 settings.extensions["at365.gmail"] = {
+  pages: { gmail: { display: "window" } },
   enabled: false,
   settings: { notifications: false },
 };
@@ -170,7 +171,10 @@ async function launch() {
   );
   await dock.evaluate(() => window.dock.executeCommand("at365.gmail.open"));
   await until(() => {
-    ui = app.windows().find((p) => p.url().includes("/web/index.html"));
+    ui = app
+      .context()
+      .pages()
+      .find((p) => p.url().includes("/web/index.html"));
     return !!ui;
   }, "Gmail window");
   await ui.waitForFunction(() => !!window.webAccounts);
@@ -576,7 +580,11 @@ async function close() {
       .click();
     await app.evaluate(({ BrowserWindow }) => {
       const w = BrowserWindow.getAllWindows().find((w) =>
-        w.webContents.getURL().includes("/web/index.html"),
+        w.contentView.children.some((v) =>
+          v.children.some((c) =>
+            c.webContents?.getURL().includes("/web/index.html"),
+          ),
+        ),
       );
       w.setContentSize(900, 640);
     });
@@ -592,7 +600,11 @@ async function close() {
     await ui.screenshot({ path: path.join(profile, "sound-minimum.png") });
     const normalGeometry = await app.evaluate(({ BrowserWindow }) => {
       const w = BrowserWindow.getAllWindows().find((w) =>
-        w.webContents.getURL().includes("/web/index.html"),
+        w.contentView.children.some((v) =>
+          v.children.some((c) =>
+            c.webContents?.getURL().includes("/web/index.html"),
+          ),
+        ),
       );
       w.setBounds({ x: 80, y: 90, width: 1050, height: 760 });
       return w.getNormalBounds();
@@ -600,7 +612,11 @@ async function close() {
     await ui.screenshot({ path: path.join(profile, "sound-compact.png") });
     await app.evaluate(({ BrowserWindow }) => {
       const w = BrowserWindow.getAllWindows().find((w) =>
-        w.webContents.getURL().includes("/web/index.html"),
+        w.contentView.children.some((v) =>
+          v.children.some((c) =>
+            c.webContents?.getURL().includes("/web/index.html"),
+          ),
+        ),
       );
       w.maximize();
     });
@@ -625,7 +641,11 @@ async function close() {
     await launch();
     const restored = await app.evaluate(({ BrowserWindow }) => {
       const w = BrowserWindow.getAllWindows().find((w) =>
-        w.webContents.getURL().includes("/web/index.html"),
+        w.contentView.children.some((v) =>
+          v.children.some((c) =>
+            c.webContents?.getURL().includes("/web/index.html"),
+          ),
+        ),
       );
       return { bounds: w.getNormalBounds(), maximized: w.isMaximized() };
     });

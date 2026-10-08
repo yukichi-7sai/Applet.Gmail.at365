@@ -18,6 +18,7 @@ const settings = hostRequire(
 ).createDefaultSettings();
 settings.host.hardwareAcceleration = false;
 settings.extensions["at365.gmail"] = {
+  pages: { gmail: { display: "window" } },
   enabled: false,
   settings: { notifications: false },
 };
