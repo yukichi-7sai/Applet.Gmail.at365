@@ -243,7 +243,14 @@ function App() {
         await window.webAccounts.acknowledge(a.id);
     });
   return (
-    <>
+    <div
+      className="gmail-app"
+      style={
+        {
+          "--toolbar-height": page === "inbox" ? "64px" : "80px",
+        } as React.CSSProperties
+      }
+    >
       <header>
         <div className="brand">
           <span className="mark" aria-hidden="true">
@@ -297,32 +304,9 @@ function App() {
             設定
           </button>
         </nav>
-        <span className="header-note">{accounts.length} アカウント</span>
       </header>
       <aside>
-        <div className="section">
-          <span>アカウント</span>
-          <span>{accounts.length} / 10</span>
-        </div>
-        <div className="account-switcher">
-          <button
-            aria-label="前のアカウント"
-            title="前のアカウント（初期設定: Ctrl+Shift+Tab）"
-            disabled={busy || accounts.length < 2}
-            onClick={() => void run(() => window.webAccounts.cycle(-1))}
-          >
-            ←
-          </button>
-          <span>アカウント切替</span>
-          <button
-            aria-label="次のアカウント"
-            title="次のアカウント（初期設定: Ctrl+Tab）"
-            disabled={busy || accounts.length < 2}
-            onClick={() => void run(() => window.webAccounts.cycle(1))}
-          >
-            →
-          </button>
-        </div>
+        <div className="account-list-spacer" aria-hidden="true" />
         <nav className="accounts" aria-label="アカウント一覧">
           {accounts.map((a) => (
             <button
@@ -440,22 +424,15 @@ function App() {
                 新着表示をクリア
               </button>
             </div>
-            <div
-              className={"status " + (error || account?.error ? "error" : "")}
-              role="status"
-            >
+            {(error || notice) && (
               <span
-                className={
-                  "status-dot " + (account?.attention ? "attention" : "")
-                }
-              />
-              {error ||
-                notice ||
-                account?.error ||
-                (account?.loading
-                  ? "Googleのページを読み込んでいます…"
-                  : account?.status || "Googleの画面でログインしてください。")}
-            </div>
+                className={"action-feedback " + (error ? "error" : "")}
+                role={error ? "alert" : "status"}
+                title={error || notice}
+              >
+                {error || notice}
+              </span>
+            )}
           </>
         ) : (
           <div className="page-heading">
@@ -1009,7 +986,7 @@ function App() {
           </div>
         )}
       </main>
-    </>
+    </div>
   );
 }
 createRoot(document.getElementById("root")!).render(<App />);

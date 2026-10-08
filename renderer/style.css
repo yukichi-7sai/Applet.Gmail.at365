@@ -183,31 +183,18 @@ header {
   font-size: 11px;
   font-weight: 700;
 }
-.header-note {
-  margin-left: auto;
-  padding-right: 24px;
-  color: var(--muted);
-  font-size: 11px;
-}
 aside {
   position: absolute;
   left: 0;
-  top: 66px;
+  top: var(--header-height);
   bottom: 0;
   width: 236px;
   background: var(--side);
   border-right: 1px solid var(--line);
-  padding: 22px 12px 18px;
+  padding: 0 12px 18px;
   display: flex;
   flex-direction: column;
   overflow: auto;
-}
-.section {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--muted);
-  padding: 0 10px 15px;
 }
 .accounts {
   display: grid;
@@ -302,8 +289,8 @@ aside {
   position: absolute;
   left: 236px;
   right: 0;
-  top: 66px;
-  height: 80px;
+  top: var(--header-height);
+  height: var(--toolbar-height);
   padding: 12px 18px;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
@@ -328,27 +315,6 @@ aside {
   color: var(--accent);
   background: transparent;
 }
-.status {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding-top: 8px;
-  color: var(--muted);
-  font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--status);
-  flex-shrink: 0;
-}
-.status-dot.attention {
-  background: var(--accent);
-}
 .error {
   color: var(--danger);
 }
@@ -356,7 +322,7 @@ main {
   position: absolute;
   left: 236px;
   right: 0;
-  top: 146px;
+  top: calc(var(--header-height) + var(--toolbar-height));
   bottom: 0;
 }
 .web-viewport {
@@ -409,17 +375,6 @@ h1 {
 .filters {
   display: flex;
   gap: 6px;
-}
-.account-switcher {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 14px 12px;
-  color: var(--muted);
-  font-size: 11px;
-}
-.account-switcher button {
-  padding: 5px 12px;
 }
 .sound-toggle {
   display: flex;
@@ -791,9 +746,6 @@ h3 {
   overflow-wrap: anywhere;
 }
 @media (max-width: 1000px) {
-  .header-note {
-    display: none;
-  }
   .page-content {
     padding: 22px;
   }
@@ -809,4 +761,29 @@ h3 {
   .info-grid {
     gap: 18px;
   }
+}
+
+.gmail-app {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  --header-height: 66px;
+}
+.account-list-spacer {
+  height: var(--toolbar-height);
+  flex-shrink: 0;
+}
+.action-feedback {
+  position: absolute;
+  right: 18px;
+  bottom: 3px;
+  max-width: calc(100% - 36px);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+.action-feedback.error {
+  color: var(--danger);
 }

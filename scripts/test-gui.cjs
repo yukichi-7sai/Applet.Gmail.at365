@@ -276,7 +276,7 @@ async function launch(startupUnread = false) {
     });
     assert.deepEqual(bounds, {
       window: [900, 640],
-      view: { x: 236, y: 146, width: 664, height: 494 },
+      view: { x: 236, y: 130, width: 664, height: 510 },
     });
     // Page screenshots capture the local controller separately from native child views.
     const remoteImage = await app.evaluate(async ({ webContents }, id) => {

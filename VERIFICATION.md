@@ -1,5 +1,16 @@
 # 検証記録
 
+## 2026-10-08: v0.8.0 アカウント一覧の余白と上部表示
+
+- 前回0.7.0をmainへfast-forward統合（dbe84be）後、codex/ribbon-layout-gmail-polishで実施。最低ホスト0.18.0は維持。配布物をpublish/Applet.Gmail.at365へ生成。
+- 上部のアカウント数、一覧上のアカウント見出し/件数、「アカウント切替」と左右ボタン、重複した通常の監視状態を削除。アカウント一覧の状態表示と操作失敗/対象メール消失の案内、次/前コマンドと設定キーは保持。
+- 共通CSS変数のheader/toolbar高さとaccount-list-spacerで、本文領域と先頭アカウントの上端を揃える。受信トレイは130 DIP、新着一覧等は146 DIP。幅/画面の表示先を変えても同じUIを使う。
+- main/renderer型検査・Vite build・回帰21/21成功。ホストは89/89、Prettier/diff check成功。README/DEVELOPMENT更新。
+- 最終発行ホスト0.19.0の../AppDock.at365/artifacts/ribbon-layout-1791458897839/result.jsonはok:true。削除対象の不在、先頭アカウント/本文の一致、未読件数、通常サイズ/900×640を確認、画像目視成功。
+- 別Windowのscripts/test-gui.cjs: artifacts/gui-1791458866882/result.json（ok:true）。新しい236/130/664/510 DIP領域、新着/履歴/クリア/アカウント分離/背景監視/再起動/停止を確認。scripts/test-ui-features.cjs: artifacts/ui-features-1791458910659/result.json（ok:true）。削除した切替ボタン試験は同じ安定コマンドIDへ更新し、既定/変更キー・連続入力、検索/未読/メールを開く操作/迅速な未発見案内・音/位置保持等を確認。
+- 最終単一EXE: artifacts/portable-1791458903951/result.json（ok:true/host0.19.0/exitCode0）。未改変0.8.0で本体ページ・新着/履歴/クリア・停止/再開・正常終了を確認。配布EXEのハッシュは[ホスト検証記録](../AppDock.at365/VERIFICATION.md)を参照。
+- 実利用deploy/外部push・実Google操作・実メール送信は未実施。
+
 ## 2026-10-08: v0.7.0 本体ページと別ウィンドウ
 
 - 専用ブランチ`codex/applet-pages-ribbon`。最低ホスト0.18.0、pages capability、gmailページ/リボン名/メールアイコンと既存openCommandを宣言。React UI・DOM観測・監視は共用し、表示先はホストに任せる。

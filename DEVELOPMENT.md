@@ -102,3 +102,4 @@ Google認証の許可先には`https://accounts.youtube.com`も含めます。[G
 最低AppDockは0.18.0です。manifestにpages capabilityとsource:web-accountsのgmailページ、既存openコマンドを宣言します。React UI・監視・通知は共用し、表示先とログイン済みViewの載せ替えはホストが担当します。表示方法はAppletの一般設定値と別にextensions.at365.gmail.pages.gmail.displayへ保存します。詳細は[ホストのAppletページAPI](../AppDock.at365/docs/applet-pages.md)を参照してください。
 
 ホストのscripts/applet-pages-ui-test.cjsは本体ページを検証します。既存Gmailのtest-gui/test-accounts/test-ui-features/test-background/test-auth-redirectは表示方法をwindowへ明示し、Electron contextのpagesから独立UI WebContentsを取得します。WindowはcontentView内のUI所有関係で照合します。GUIを実行する前にホストとAppletをビルドし、試験中にout/mainを再生成しないでください。
+0.8.0のローカルUIはアカウント数/切替バー/重複する監視状態を取り除きます。header高さとtoolbar高さを共通CSS変数にし、左側のaccount-list-spacerと右側mainに同じ高さを使います（受信トレイ64px、他タブ80px）。次/前のコマンドとキーは保持します。AppDockのscripts/ribbon-layout-ui-test.cjsでページ表示時、test-gui.cjsで別Window時の領域を確認します。

@@ -404,12 +404,12 @@ async function close() {
       async () => (await snapshot()).selected === accounts[1].id,
       "previous command",
     );
-    await ui
-      .getByRole("button", { name: "次のアカウント", exact: true })
-      .click();
+    await dock.evaluate(() =>
+      window.dock.executeCommand("at365.gmail.nextAccount"),
+    );
     await until(
       async () => (await snapshot()).selected === accounts[0].id,
-      "next button",
+      "next command",
     );
     await dock.evaluate(async () => {
       const { settings } = await window.dock.snapshot();
@@ -424,9 +424,9 @@ async function close() {
       async () => (await snapshot()).selected === accounts[1].id,
       "custom shortcut",
     );
-    await ui
-      .getByRole("button", { name: "次のアカウント", exact: true })
-      .click();
+    await dock.evaluate(() =>
+      window.dock.executeCommand("at365.gmail.nextAccount"),
+    );
     await until(
       async () => (await snapshot()).selected === accounts[0].id,
       "return account one",
@@ -694,7 +694,7 @@ async function close() {
             "deleted row and last empty inbox clear history and badge",
             "pagination and unknown rows cannot prove whole-inbox absence",
             "Japanese and English explicit empty states",
-            "cycle command and buttons",
+            "cycle commands and configurable shortcuts",
             "independent account sound with desktop notifications off",
             "WAV preview/reset/OFF",
             "sound persistence",
