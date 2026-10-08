@@ -2,6 +2,7 @@
 
 ## 2026-10-08: v0.9.0 ツールバー・コマンド・表示設定
 
+- ユーザーが今回の動作を確認したと報告し、マージを指定（2026-10-08 JST）。両repoのcodex/gmail-toolbar-commandsをmainへfast-forward統合（AppDock a737ae5 / Gmail d3fc1c4）。統合直後のGit treeは検証済みブランチと一致。報告は今回全体の動作確認として記録し、個別のWindows通知などの検証範囲は推測しない。追加の製品コード変更・再発行・deploy・pushなし。
 - 0.8.0の正常動作をユーザーが報告し、mainへFF統合（918fb59）。今回はcodex/gmail-toolbar-commands。最低AppDock0.20.0、publish/Applet.Gmail.at365を生成。
 - 受信トレイのtoolbarを戻る/進む/リロード/受信トレイの4アイコンにし、aria-labelとコマンド名のtitleを付与。clearは受信トレイから削除して新着一覧と既存コマンドを使用。アカウント一覧の上端は受信トレイ基準で固定（表示時130DIP、非表示時66DIP）、他タブの本文146DIPへ追従させない。左上はVite buildでpackage版を表示する。
 - back/forward/reload/inboxの安定コマンドIDを追加し、既存acknowledgeを継続。ホストの共通navigateを使用し、選択アカウントを操作、実行後は受信トレイタブへ戻る。表示先はopenで管理。
