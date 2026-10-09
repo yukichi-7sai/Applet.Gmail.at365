@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, ".."),
   host = path.resolve(root, "../AppDock.at365");
 const hostRequire = createRequire(path.join(host, "package.json"));
 const { _electron: electron } = hostRequire("playwright");
-const profile = path.join(root, "artifacts", `toolbar-${Date.now()}`);
+const profile = path.join(root, ".artifacts", `toolbar-${Date.now()}`);
 const accounts = ["One", "Two"].map((name) => ({ id: randomUUID(), name }));
 const accountRoot = path.join(profile, ".appdock/web-accounts/at365.gmail");
 fs.mkdirSync(accountRoot, { recursive: true });

@@ -5,7 +5,7 @@ const root = path.resolve(__dirname, ".."),
   host = path.resolve(root, "../AppDock.at365");
 const hostRequire = createRequire(path.join(host, "package.json"));
 const { _electron: electron } = hostRequire("playwright");
-const profile = path.join(root, "artifacts/gmail-dev");
+const profile = path.join(root, ".artifacts/gmail-dev");
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 (async () => {

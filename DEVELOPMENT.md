@@ -19,7 +19,7 @@
 
 ## 開発起動と検証
 
-ホストを`dev.bat run build`でビルドしてから、ルートの`start-dev.bat`を使います。`artifacts/gmail-dev`に隔離したAppDockを起動します。Gmailを開くコマンドから操作画面を表示できます。実利用のAppDockを更新・再起動する操作とは独立しています。
+ホストを`dev.bat run build`でビルドしてから、ルートの`start-dev.bat`を使います。`.artifacts/gmail-dev`に隔離したAppDockを起動します。Gmailを開くコマンドから操作画面を表示できます。実利用のAppDockを更新・再起動する操作とは独立しています。
 
 Gmail開発profileはハードウェアアクセラレーションをオフにします。`prepare-dev.cjs`が既存の他設定を保持したまま`host.hardwareAcceleration: false`を保存し、次回起動からソフトウェア描画を使用します。各GUI/portable/認証fixtureもGPUオフです。起動中のGPU設定は変わらないため、変更後はテスト用AppDockを完全終了して起動し直してください。
 
@@ -43,7 +43,7 @@ Gmail開発profileはハードウェアアクセラレーションをオフに�
 
 ## 構成と設計
 
-0.5.1はAppDock 0.16.1を必要とします。画像要求は当該sessionのcredentials:includeで行い、未認証の標準画像への置換を防ぎます。切替コマンドのcycleはopen/focusを呼びません。test-accountsは認証ポリシー/セッションのfixtureと、別Windowを前面にしたまま未表示/表示/最小化/非表示でコマンドを実行する検証を追加しました。画像比較はprobe-native-startup --duration=20000 --avatar-matchで、右上の画像領域だけをcapturePageし、匿名/ログイン済み取得と照合します。画像やURL/名前/認証値を診断出力せず、artifacts/avatar-match-liveのローカル画像と数値を確認してください。
+0.5.1はAppDock 0.16.1を必要とします。画像要求は当該sessionのcredentials:includeで行い、未認証の標準画像への置換を防ぎます。切替コマンドのcycleはopen/focusを呼びません。test-accountsは認証ポリシー/セッションのfixtureと、別Windowを前面にしたまま未表示/表示/最小化/非表示でコマンドを実行する検証を追加しました。画像比較はprobe-native-startup --duration=20000 --avatar-matchで、右上の画像領域だけをcapturePageし、匿名/ログイン済み取得と照合します。画像やURL/名前/認証値を診断出力せず、.artifacts/avatar-match-liveのローカル画像と数値を確認してください。
 
 0.5.0はAppDock 0.16.0のmove/setMonitoringを使います。settingsの全体monitoringとreadの各枠monitoringをANDで判定し、monitoringResetsを受けたmonitorはONでもresetします。個別OFFの即時UIクリアと古いreportの抑制はホスト、検知・音・通知の抑制はAppletです。順番と個別監視はUUID/ログイン領域を保持してaccounts.jsonへ保存します。Reactの監視スイッチは即時表示し、保存失敗時に戻します。表示名はEnter保存と未保存変更の取消に対応します。
 
@@ -115,3 +115,7 @@ Google認証の許可先には`https://accounts.youtube.com`も含めます。[G
 ZIP直下に`extension.json`と実行ファイル一式を置き、JSONにID・版・必要な本体版・ZIPのサイズとSHA256を記録します。`OutputDirectory`を指定できる発行スクリプトでも、指定先の配布内容を読み、更新用JSON/ZIPの出力先はこのリポジトリの`publish`です。通常配置用サブフォルダーへJSON/ZIPを混ぜず、`deploy.bat`の配置対象も増やしません。
 
 Web配布やGitHub Releaseには同じ発行で生成したJSONとZIPを一緒に置き、JSONを最後に公開してください。ソースコードの自動生成ZIPは使用しません。発行スクリプトから外部公開は行いません。[共通更新仕様](../AppDock.at365/docs/updates.md)と[配布先の確認手順](../AppDock.at365/docs/update-checklist.md)を参照してください。
+
+## 開発生成物の保存先
+
+開発・テストの生成物は`.artifacts`へ保存します。2026-10-10に旧`artifacts`を中身を保持して改名しました。過去の検証記録内の当repoの`artifacts/`は`.artifacts/`へ読み替えてください。保存済みログ/JSONの内部パスは実行当時の値として保持しています。作業完了時の整理は[AppDockの共通手順](../AppDock.at365/DEVELOPMENT.md#作業完了時のテストフォルダー整理)に従い、実行中・状態不明・未解決の失敗記録・再利用する資料を保持します。

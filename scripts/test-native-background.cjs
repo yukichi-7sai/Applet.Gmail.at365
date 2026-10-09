@@ -11,7 +11,7 @@ const before = process.argv.includes("--before");
 const codeRoot = process.argv.includes("--packed-core")
   ? path.join(host, "publish/win-unpacked/resources/app.asar")
   : host;
-const profile = path.join(root, "artifacts", "native-background-" + Date.now());
+const profile = path.join(root, ".artifacts", "native-background-" + Date.now());
 const ids = [randomUUID(), randomUUID()];
 const dataRoot = path.join(profile, ".appdock");
 const accountRoot = path.join(dataRoot, "web-accounts", "at365.gmail");

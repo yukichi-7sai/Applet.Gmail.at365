@@ -1,6 +1,6 @@
 out/
 dist/
 publish/
-artifacts/
+.artifacts/
 deploy.local.txt
 node_modules/

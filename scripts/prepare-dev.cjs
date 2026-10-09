@@ -2,7 +2,7 @@ const fs = require("node:fs"),
   path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const host = path.resolve(root, "../AppDock.at365");
-const profile = path.join(root, "artifacts", "gmail-dev");
+const profile = path.join(root, ".artifacts", "gmail-dev");
 const webRoot = path.join(profile, ".appdock/web-accounts/at365.gmail");
 fs.mkdirSync(profile, { recursive: true });
 fs.cpSync(

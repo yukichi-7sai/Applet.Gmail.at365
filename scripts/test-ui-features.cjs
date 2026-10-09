@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, ".."),
   host = path.resolve(root, "../AppDock.at365");
 const hostRequire = createRequire(path.join(host, "package.json"));
 const { _electron: electron } = hostRequire("playwright");
-const profile = path.join(root, "artifacts", "ui-features-" + Date.now());
+const profile = path.join(root, ".artifacts", "ui-features-" + Date.now());
 const webRoot = path.join(profile, ".appdock/web-accounts/at365.gmail");
 const accounts = ["個人用", "仕事用"].map((name) => ({
   id: randomUUID(),

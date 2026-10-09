@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, ".."),
   host = path.resolve(root, "../AppDock.at365");
 const hostRequire = createRequire(path.join(host, "package.json"));
 const { chromium } = hostRequire("playwright");
-const profile = path.join(root, "artifacts", "portable-" + Date.now());
+const profile = path.join(root, ".artifacts", "portable-" + Date.now());
 fs.mkdirSync(profile, { recursive: true });
 fs.copyFileSync(
   path.join(host, "publish/AppDock.at365.exe"),

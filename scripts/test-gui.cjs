@@ -6,7 +6,7 @@ const root = path.resolve(__dirname, ".."),
   host = path.resolve(root, "../AppDock.at365");
 const hostRequire = createRequire(path.join(host, "package.json"));
 const { _electron: electron } = hostRequire("playwright");
-const profile = path.join(root, "artifacts", "gui-" + Date.now());
+const profile = path.join(root, ".artifacts", "gui-" + Date.now());
 const executable = process.argv[2]
   ? path.resolve(process.argv[2])
   : hostRequire("electron");

@@ -7,7 +7,7 @@ const { createRequire } = require("node:module");
 const root = path.resolve(__dirname, "..");
 const host = path.resolve(root, "../AppDock.at365");
 const hostRequire = createRequire(path.join(host, "package.json"));
-const profile = path.join(root, "artifacts/gmail-dev");
+const profile = path.join(root, ".artifacts/gmail-dev");
 const actionFile = path.join(profile, "startup-action.json");
 const resultFile = path.join(profile, "startup-native-probe.json");
 const endpointFile = path.join(profile, "startup-inspector.txt");
@@ -107,7 +107,7 @@ const actions = {
       );
       if (process.argv.includes("--avatar-match") && i === 2) {
         const matches = await evaluate(
-          `(async()=>{const c=process.mainModule.require(${JSON.stringify(path.join(host, "out/main/main/core/web-accounts"))}).getWebAccounts('at365.gmail');return process.mainModule.require(${JSON.stringify(path.join(root, "scripts/avatar-match.cjs"))})(electron,c,${JSON.stringify(path.join(root, "artifacts/avatar-match-live"))});})()`,
+          `(async()=>{const c=process.mainModule.require(${JSON.stringify(path.join(host, "out/main/main/core/web-accounts"))}).getWebAccounts('at365.gmail');return process.mainModule.require(${JSON.stringify(path.join(root, "scripts/avatar-match.cjs"))})(electron,c,${JSON.stringify(path.join(root, ".artifacts/avatar-match-live"))});})()`,
         );
         console.log(JSON.stringify({ avatarMatch: matches }));
       }

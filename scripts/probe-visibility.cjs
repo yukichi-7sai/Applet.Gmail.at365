@@ -6,7 +6,7 @@ const root = path.resolve(__dirname, ".."),
   host = path.resolve(root, "../AppDock.at365");
 const hostRequire = createRequire(path.join(host, "package.json"));
 const { _electron: electron } = hostRequire("playwright");
-const profile = path.join(root, "artifacts", "visibility-" + Date.now());
+const profile = path.join(root, ".artifacts", "visibility-" + Date.now());
 fs.mkdirSync(profile, { recursive: true });
 const entry = path.join(profile, "main.cjs");
 fs.writeFileSync(

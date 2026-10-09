@@ -6,7 +6,7 @@ const root = path.resolve(__dirname, ".."),
   host = path.resolve(root, "../AppDock.at365");
 const hostRequire = createRequire(path.join(host, "package.json"));
 const { _electron: electron } = hostRequire("playwright");
-const profile = path.join(root, "artifacts", "auth-redirect-" + Date.now());
+const profile = path.join(root, ".artifacts", "auth-redirect-" + Date.now());
 fs.mkdirSync(profile, { recursive: true });
 fs.cpSync(
   path.join(root, "publish/Applet.Gmail.at365"),
