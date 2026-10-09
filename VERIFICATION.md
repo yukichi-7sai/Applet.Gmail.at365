@@ -1,5 +1,10 @@
 # 検証記録
 
+## 2026-10-10: 古い成功テストフォルダーの整理
+
+- ユーザー依頼により、成功・実行方式を確認できる古い24フォルダー（portable/native-background）を削除。1,935,118,276 bytes。種類/方式ごとの直近3回分、失敗/不明の記録、gmail-dev/avatar-match-liveは保持。削除前に結果hash/内容一覧/リンク/プロセス/ロックを再確認し、使用中や削除失敗0件。
+- publish全11ファイルのSHA256が不変、開発用データ3,166項目のsize/mtime/属性が改名時の棚卸しから不変。製品コード/版/実ログインへの操作/再発行なし。全7repoの計画・削除名・結果は本体の`.artifacts/cleanup-20261010-{plan,result,verification}.json`へ保存。
+
 ## 2026-10-10: 開発生成物を`.artifacts`へ改名
 
 - ユーザー指定でartifacts→.artifactsを改名。移動直後に既存40515項目の相対パス/size/mtime/ディレクトリ・リンク属性が一致し、検証終了時も元の全項目のsize/mtime/属性が不変。配布物11ファイルのSHA256も検証前後で一致。保存済みログ/JSONは内部パスを含めて保持し、過去記録の当repoのartifacts/は.artifacts/へ読み替える。
