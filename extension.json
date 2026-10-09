@@ -3,7 +3,7 @@
   "id": "at365.gmail",
   "name": "Applet.Gmail.at365",
   "displayName": "Gmail",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "minimumHostVersion": "0.20.0",
   "runtime": "node",
   "entry": "index.js",
@@ -18,6 +18,10 @@
     { "id": "at365.gmail.acknowledge", "title": "新着表示をクリア" },
     { "id": "at365.gmail.nextAccount", "title": "次のアカウント" },
     { "id": "at365.gmail.previousAccount", "title": "前のアカウント" }
+  ],
+  "defaultKeybindings": [
+    { "command": "at365.gmail.nextAccount", "key": "Ctrl+Tab", "enabled": true, "when": { "scope": "owner", "appletIds": [] } },
+    { "command": "at365.gmail.previousAccount", "key": "Ctrl+Shift+Tab", "enabled": true, "when": { "scope": "owner", "appletIds": [] } }
   ],
   "settings": [
     { "key": "unreadOnly", "title": "新着一覧を未読だけ表示", "type": "boolean", "default": false, "description": "新着一覧の「未読だけ」と連動し、再起動後も保持します。" },

@@ -1,5 +1,10 @@
 # 検証記録
 
+## 2026-10-09: v0.9.1 ショートカット初期値
+
+- `extension.json`の自身の宣言コマンドに、次のアカウントCtrl+Tabと前のアカウントCtrl+Shift+Tabをowner/有効で追加。AppDock 0.25.2の初回導入時に保存され、既存設定は上書きしない。Appletの実行コードは変更なし。
+- `publish.bat`終了0、`publish/update.json`はid `at365.gmail`/版0.9.1、最終`update.zip`は89256 bytes/SHA256 `a867c584b75c439e96207692f2b836bfde948f488da1f96570e45410382f1b7e`。AppDock 0.25.2の全体ZIPに同梱し、隔離起動後のsettingsで2行のowner条件を確認。実Gmail認証・実利用先deploy・個別GitHub公開は未実施。
+
 ## 2026-10-09: 更新配布物の自動生成
 
 - `codex/update-packages`で発行スクリプトだけを更新。Applet本体の版は0.9.0を維持し、`publish.bat`終了コード0。共通パッカーはAppDock 0.23.0のソースから発行。

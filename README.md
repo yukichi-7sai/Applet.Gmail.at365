@@ -4,7 +4,7 @@ AppDockから、複数アカウントのGmail Web画面を開くAppletです。G
 
 ## 動作環境と導入
 
-Windows x64、**AppDock 0.20.0以降**、Googleに接続できるインターネット環境が必要です。WebContentsViewはAppDock内蔵のElectronを使うため、別のブラウザーRuntimeやNode.jsのインストールは不要です。Gmail 0.9.0への更新時は、本体が0.20.0未満なら先に更新し、AppDockを完全終了してから起動し直してください。
+Windows x64、**AppDock 0.20.0以降**、Googleに接続できるインターネット環境が必要です。WebContentsViewはAppDock内蔵のElectronを使うため、別のブラウザーRuntimeやNode.jsのインストールは不要です。Gmail 0.9.1で追加したショートカット初期値の自動設定にはAppDock 0.25.2以降が必要です。
 
 AppDockを完全終了し、配布された`Applet.Gmail.at365`フォルダー全体をEXE隣の`extensions`へ置きます。`extension.json`、`index.js`、`monitor.js`、`web/`が必要です。更新時もフォルダー全体を置き換え、`.appdock`と`settings.json`は保持してください。起動後、Applet一覧で「Gmail」を有効にします。
 
