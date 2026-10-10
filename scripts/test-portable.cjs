@@ -101,7 +101,7 @@ async function until(fn, message) {
       window.dock.automation({
         kind: "configure",
         enabled: true,
-        allowWrite: false,
+        allowWrite: true,
         port: 0,
       }),
     );
@@ -131,11 +131,18 @@ async function until(fn, message) {
         name: "appdock_list_commands",
         arguments: {},
       });
-      assert.deepEqual(
-        listed.structuredContent.commands
-          .filter((c) => c.appletId === "at365.gmail")
-          .map((c) => c.id),
-        ["at365.gmail.open"],
+      const published = listed.structuredContent.commands.filter(
+        (c) => c.appletId === "at365.gmail",
+      );
+      assert.equal(published.length, 14);
+      assert(published.some((c) => c.id === "at365.gmail.settings.update"));
+      assert(
+        published.some(
+          (c) => c.id === "at365.gmail.settings.monitoring.toggle",
+        ),
+      );
+      assert(
+        !JSON.stringify(published).includes("openExternalWithoutConfirmation"),
       );
       const opened = await mcp.callTool({
         name: "appdock_execute_command",
@@ -143,11 +150,92 @@ async function until(fn, message) {
       });
       assert.equal(opened.isError, undefined);
       assert.equal(opened.structuredContent.completion, "handlerReturned");
+      await until(async () => {
+        ui = context.pages().find((p) => p.url().includes("/web/index.html"));
+        return !!ui;
+      }, "Gmail UI for settings");
+      await ui.waitForFunction(() => !!window.webAccounts);
+      const run = async (id, args) => {
+        const result = await mcp.callTool({
+          name: "appdock_execute_command",
+          arguments: { id, ...(args ? { args } : {}) },
+        });
+        assert.equal(result.isError, undefined);
+        return result.structuredContent;
+      };
+      const current = (
+        await mcp.callTool({
+          name: "appdock_get_settings",
+          arguments: { appletId: "at365.gmail" },
+        })
+      ).structuredContent;
+      assert.deepEqual(Object.keys(current.values).sort(), [
+        "historyLimit",
+        "monitoring",
+        "notifications",
+        "showToolbar",
+        "unreadOnly",
+      ]);
+      await run("at365.gmail.settings.update", {
+        changes: { historyLimit: "30" },
+        expectedRevision: current.revision,
+        dryRun: true,
+      });
+      await run("at365.gmail.settings.monitoring.off");
+      await until(
+        async () =>
+          (await ui.evaluate(() => window.webAccounts.snapshot())).settings
+            .monitoring === false,
+        "Gmail saved monitoring OFF",
+      );
+      await until(
+        async () =>
+          (await ui.evaluate(() => window.webAccounts.snapshot())).accounts[0]
+            .status === "全体の新着監視はOFFです",
+        "Gmail runtime observes monitoring OFF",
+      );
+      await run("at365.gmail.settings.monitoring.toggle");
+      await until(
+        async () =>
+          (await ui.evaluate(() => window.webAccounts.snapshot())).settings
+            .monitoring === true,
+        "Gmail saved monitoring toggle",
+      );
+      await run("at365.gmail.settings.showToolbar.off");
+      await until(
+        async () =>
+          (await ui.evaluate(() => window.webAccounts.snapshot())).settings
+            .showToolbar === false,
+        "Gmail toolbar OFF",
+      );
+      await dock.evaluate(() =>
+        window.dock.executeCommand("at365.gmail.settings.showToolbar.on"),
+      );
+      await until(
+        async () =>
+          (await ui.evaluate(() => window.webAccounts.snapshot())).settings
+            .showToolbar === true,
+        "Gmail local toolbar ON",
+      );
+      const saved = JSON.parse(
+        fs.readFileSync(path.join(profile, "settings.json")),
+      ).extensions["at365.gmail"].settings;
+      assert.equal(saved.monitoring, true);
+      assert.equal(saved.showToolbar, true);
+      assert.equal(saved.notifications, false);
     } finally {
       await mcp.close();
     }
     await dock.evaluate(() => window.dock.automation({ kind: "unregister" }));
     const logs = (await dock.evaluate(() => window.dock.snapshot())).logs;
+    assert.ok(
+      logs.some(
+        (l) =>
+          l.source === "automation" &&
+          l.message.includes("target=at365.gmail.settings.monitoring.toggle") &&
+          l.message.includes("completion=settingsSaved"),
+      ),
+    );
     assert.ok(
       logs.some(
         (l) =>
@@ -241,7 +329,7 @@ async function until(fn, message) {
       version: final.version,
       exitCode: child.exitCode,
       checks: [
-        "published Applet manifest discovery and MCP open with audit log",
+        "published Applet manifest discovery, MCP open/settings commands and local generated switches with audit log",
         "actual portable EXE",
         "offline WebContentsView",
         "remote isolation",

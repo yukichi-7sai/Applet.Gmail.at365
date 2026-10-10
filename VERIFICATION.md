@@ -1,5 +1,17 @@
 # 検証記録
 
+## 2026-10-11: 設定コマンドのコミット前確認
+
+- 対象6ファイルをstage後、固定ローカルNodeの標準回帰21/21と発行ホスト/発行Appletのportable試験を再実行し、終了0。公開設定・生成コマンド・監査ログ・停止/復帰をオフラインで確認。実Googleログイン/実メールは未操作。
+- 検証前後treeは`3cd3f9d9f71c7efcd12761cbfeda3ac25e5090dc`。標準buildによる出力を既存ZIPの全8ファイルと照合し、内容不変。依存変更・再梱包は不要。
+- 証跡は`.artifacts/commit-validation-settings-commands-20261011/`。兄弟ホストの標準221件とGUI10群も成功。検証後は本記録のみ追加し、最終tree/commit SHAを記録する。古い成功portable1件を安全検査後に整理し最新成功3件と失敗/再利用資料を保持。ローカルコミットまで。
+
+## 2026-10-11: 0.9.4 公開設定と自動生成スイッチ
+
+- 最低本体0.26.30。manifestでmonitoring/notifications/showToolbar/unreadOnly/historyLimitの公開を宣言し、4つのbooleanのon/off/toggleを生成。認証・通知詳細・確認省略は非公開。runtimeの設定処理は既存onChangedを共用。
+- publish.bat -Test終了0、標準21/21。実発行AppDock0.26.30とGmail0.9.4の隔離portable試験成功（.artifacts/portable-1791665870577）。MCPで14コマンド発見、Gmail表示、公開設定だけの取得、更新dryRun、監視OFFの実稼働状態/反転復帰、ツールバーOFF/ローカルON、設定の永続化、設定コマンドの監査ログを確認。既存のDOM新着/プレビュー非公開/表示解除/停止再開/正常終了も成功。
+- ZIP89428bytes、SHA256 e732922594c90260e843ae205bc797aac320946aebca049e5ecf325f39649f42。manifest/最低本体/feedとZIP全8ファイルのhash一致。証跡.artifacts/settings-commands-20261011。実Google認証・実メール・長時間監視は未実施。古い成功portable1件を整理して最新3件保持。commit/push/Release/deployなし。
+
 ## 2026-10-10: 0.9.2 登録済み通知音選択とPC専用枠
 
 - AppDock 0.26.14へ対応し、通知音欄に登録済みWAVの一覧を追加。WAV登録/標準へ戻す/試聴を維持し、元ファイル名を選択値にする。同名別内容は登録を拒否、同名同内容は再利用。登録素材はAppDock配置内、Gmail専用枠/ID/選択/枠別監視/音声割当と全認証はPC専用。旧.appdockからの自動移行・削除は追加していない。正本は[ホストの保存仕様](../AppDock.at365/docs/settings-sync.md)。

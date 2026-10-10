@@ -127,3 +127,7 @@ Web配布やGitHub Releaseには同じ発行で生成したJSONとZIPを一緒�
 ## 外部コマンド宣言
 
 AppDock 0.26.29以降のmanifest `commands[].automation`で公開対象を宣言します。本体側へApplet固有のIDを追加する必要はありません。公開契約・権限・動的登録の扱いは[共通操作API](../AppDock.at365/docs/automation.md#appletによる公開宣言)を参照してください。
+
+## 設定コマンド（0.9.4）
+
+extension.jsonでmonitoring/notifications/showToolbar/unreadOnly/historyLimitにautomation=true、4つのbooleanにgenerateCommandsを宣言します。更新・生成コマンドの処理はAppDockへ委ね、既存settings.onChangedで反映します。公開/引数/競合/ログの正本は[共通操作API](../AppDock.at365/docs/automation.md#設定宣言と自動生成コマンド)。最低本体版は0.26.30。実配布物の検証はscripts/test-portable.cjsで実施します。
