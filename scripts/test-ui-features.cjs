@@ -282,10 +282,13 @@ async function close() {
     await hostAbout
       .getByRole("button", { name: "更新を確認", exact: true })
       .click();
-    await hostAbout
+    await dock
+      .locator(".update-operation")
       .getByRole("status")
-      .filter({ hasText: "9.0.0 が公開されています" })
+      .filter({ hasText: "9.0.0 に更新できます" })
       .waitFor();
+    await hostAbout.locator(".update-result-details summary").click();
+    await hostAbout.getByText("9.0.0 が公開されています。", { exact: true }).waitFor();
     await hostAbout.getByRole("button", { name: "リリースを開く" }).waitFor();
     await dock.screenshot({ path: path.join(profile, "about-dark.png") });
     for (const [mode, message] of [
@@ -307,6 +310,7 @@ async function close() {
       .locator(".about-applets")
       .getByRole("button", { name: "更新を確認", exact: true })
       .click();
+    await dock.locator(".about-applets .update-result-details summary").click();
     await dock
       .locator(".about-applets")
       .getByText("更新元が設定されていません。", { exact: true })
@@ -797,6 +801,12 @@ async function close() {
     );
     console.log(profile);
   } finally {
+    if (ui && !fs.existsSync(path.join(profile, "result.json"))) {
+      fs.writeFileSync(path.join(profile, "ui-diagnostics.json"), JSON.stringify({
+        alerts: await ui.getByRole("alert").allTextContents().catch(() => []),
+        statuses: await ui.getByRole("status").allTextContents().catch(() => []),
+      }, null, 2));
+    }
     if (app) await close().catch(() => {});
   }
 })().catch((error) => {

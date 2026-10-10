@@ -253,3 +253,9 @@
 - READMEと7本の開発・GUI fixtureの共有rootをdataへ更新。製品は登録音声選択を実装した0.9.2のまま、追加の版更新・再発行なし。全14本のcjs構文検査成功、総合GUI成功（.artifacts/ui-features-1791614661582/result.json）。
 - AppDock固定0.26.16 EXEの2配置GUI11項目で、登録済みベル.wavの一覧・PC別割当・枠分離・再起動を確認。shared assetsはdata、Gmail枠はPC専用root。実Google認証・実同期サービスは未確認。
 - 既存publish/update.zipは89381bytes、SHA256 1a6484571df3d02481fd449d3ac1a900fec219e4ccf3d9d0008308e6c2889238のまま。今回の関連変更をユーザー指定によりコミットする。push/Release/実利用deployなし。旧fixtureの方式不明・認証/再利用資料を保持し削除0。
+
+## 2026-10-11: 0.9.2 リリース準備
+
+- ホスト0.26.25のリリースに同梱する未公開版として確認。型/build/回帰21件成功。ホスト更新結果の新UIにGUIのlocatorを合わせ、失敗時のalert/status診断を追加。製品コード・版の変更なし。
+- オフラインUI機能試験の最終成功は.artifacts/ui-features-1791652505861/result.json。途中の隔離ファイル置換EPERM・案内待ち失敗を保持し、同一製品コードで全試験成功。実認証・メール操作なし。ホストの.artifacts/commit-release-0.26.25-20261011に完全ログを保存。
+- 新しい全体ZIPと個別更新ZIPの照合、固定配布物確認、公開後の匿名取得/更新チェックは今回のRelease工程で別途行う。
