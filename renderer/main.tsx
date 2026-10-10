@@ -969,12 +969,36 @@ function App() {
                     このアカウントの通知音を鳴らす
                   </label>
                   <div className="sound-file">
-                    <span title={account?.sound.file || "標準のビープ音"}>
-                      {account?.sound.file
-                        ? account.sound.name ||
-                          account.sound.file.split(/[\\/]/).at(-1)
-                        : "標準のビープ音"}
-                    </span>
+                    <select
+                      aria-label="登録済みの通知音"
+                      disabled={busy || !account}
+                      value={account?.sound.file || ""}
+                      onChange={(event) => {
+                        const file = event.currentTarget.value;
+                        void run(() =>
+                          window.webAccounts.setSound(account!.id, {
+                            enabled: account!.sound.enabled,
+                            file,
+                          }),
+                        );
+                      }}
+                    >
+                      <option value="">標準のビープ音</option>
+                      {account?.sound.file &&
+                        !snapshot?.registeredSounds?.includes(
+                          account.sound.file,
+                        ) && (
+                          <option value={account.sound.file}>
+                            {account.sound.name || account.sound.file}
+                            （同期待ち・未登録）
+                          </option>
+                        )}
+                      {(snapshot?.registeredSounds ?? []).map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       disabled={busy || !account}
                       onClick={() =>
@@ -983,7 +1007,7 @@ function App() {
                         )
                       }
                     >
-                      WAVを選択
+                      WAVを登録
                     </button>
                     <button
                       disabled={busy || !account?.sound.file}
@@ -1010,7 +1034,7 @@ function App() {
                     </button>
                   </div>
                   <p className="hint">
-                    通知音はAppDockの保存領域へコピーします。元のWAVを移動・削除しても利用できます。試聴は通知音がOFFでも再生できます。
+                    登録したWAVはAppDockフォルダーに保存し、一覧から何度でも選べます。同名の別ファイルは登録できません。試聴は通知音がOFFでも再生できます。
                   </p>
                   {account?.soundError && (
                     <p className="error-banner" role="alert">

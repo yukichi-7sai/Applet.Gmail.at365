@@ -1,5 +1,14 @@
 # 検証記録
 
+## 2026-10-10: 0.9.2 登録済み通知音選択とPC専用枠
+
+- AppDock 0.26.14へ対応し、通知音欄に登録済みWAVの一覧を追加。WAV登録/標準へ戻す/試聴を維持し、元ファイル名を選択値にする。同名別内容は登録を拒否、同名同内容は再利用。登録素材はAppDock配置内、Gmail専用枠/ID/選択/枠別監視/音声割当と全認証はPC専用。旧.appdockからの自動移行・削除は追加していない。正本は[ホストの保存仕様](../AppDock.at365/docs/settings-sync.md)。
+- publish.bat -Test終了0、型検査/buildと回帰21/21成功。ログ: .artifacts/settings-sync-gmail-build.log。UI機能試験 .artifacts/ui-features-1791611016171/result.json、settings-sync-ui-features.logは終了0。登録音声を一覧から再選択、同名別WAVの拒否と元bytes保持、通知音OFFでも試聴、標準音、元WAV削除後の使用/再起動、枠別独立割当、検索/未読/キー/更新画面/テーマ/geometry等を確認。
+- 途中のfixtureは旧更新schema/alert/キー初期化を前提として失敗。現フィード・取得hook・保存済みAppletのキーfixture・画面のlocator/フォーカス処理を修正して最終成功。失敗記録は保持し、実Googleログイン/実メール操作を行っていない。
+- 最終ホスト単一EXEを使う2配置試験: ../AppDock.at365/.artifacts/settings-sync-ui-1791611784215/result.json。Gmail ID/ローカル設定を分離し、素材だけの配達で登録音声一覧が両配置に現れ、同じ一覧から各PCで独立選択し再起動後も維持。音声欄のlight/dark画像を目視確認。実2PC・実同期サービスは未検証。
+- 本体0.26.14とGmail0.9.2を各モジュール自身のpublishへ発行。更新ZIP 89,381 bytes、SHA256 1a6484571df3d02481fd449d3ac1a900fec219e4ccf3d9d0008308e6c2889238。feed/manifest版0.9.2・最低host0.26.14・全8発行ファイルのZIP内bytes一致。証跡: .artifacts/settings-sync-final-check.json。実利用へのdeploy/commit/push/Releaseは未実施。
+- テスト整理: 今回のui-features成功1回を保持。旧Gmailの方式/再利用証拠が不足するもの、失敗/不明、開発用認証資料は保持し、このrepoで削除0。ホストのWebApplet portableは成功直近3回を保ち古い1回のみ整理し、設定同期のsource2/portable1を保持。記録はホストのsettings-sync-cleanup-result.json。
+
 ## 2026-10-10: 古い成功テストフォルダーの整理
 
 - ユーザー依頼により、成功・実行方式を確認できる古い24フォルダー（portable/native-background）を削除。1,935,118,276 bytes。種類/方式ごとの直近3回分、失敗/不明の記録、gmail-dev/avatar-match-liveは保持。削除前に結果hash/内容一覧/リンク/プロセス/ロックを再確認し、使用中や削除失敗0件。
@@ -239,3 +248,8 @@
 実Gmailの再起動後ログイン保持・受信トレイ表示・実DOM解析は確認済み。2026-10-07、ユキちゃん自身が試しにメールを送信し、Windowsの新着通知が表示されたことを報告。実メール到着から新着検知・通知表示までの動作をユーザー確認済みとして記録する。返信検知はオフラインDOM更新で検証したもので、**実スレッドへの返信、複数の実Googleアカウント、セッション失効後の再認証・組織独自SSO、空の実受信トレイ、Windows通知のクリック/音、スリープ復帰、長時間常駐**は未確認。画面差分による判定の制約はREADMEを参照。
 
 実利用先へのAppDock更新・新Applet配置は行っていない。開発profileへの配置・起動と、プロジェクト内の発行物は別に扱う。
+## 2026-10-10: AppDock 0.26.16のdataフォルダーへ対応
+
+- READMEと7本の開発・GUI fixtureの共有rootをdataへ更新。製品は登録音声選択を実装した0.9.2のまま、追加の版更新・再発行なし。全14本のcjs構文検査成功、総合GUI成功（.artifacts/ui-features-1791614661582/result.json）。
+- AppDock固定0.26.16 EXEの2配置GUI11項目で、登録済みベル.wavの一覧・PC別割当・枠分離・再起動を確認。shared assetsはdata、Gmail枠はPC専用root。実Google認証・実同期サービスは未確認。
+- 既存publish/update.zipは89381bytes、SHA256 1a6484571df3d02481fd449d3ac1a900fec219e4ccf3d9d0008308e6c2889238のまま。今回の関連変更をユーザー指定によりコミットする。push/Release/実利用deployなし。旧fixtureの方式不明・認証/再利用資料を保持し削除0。

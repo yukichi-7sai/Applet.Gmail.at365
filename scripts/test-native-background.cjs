@@ -13,7 +13,7 @@ const codeRoot = process.argv.includes("--packed-core")
   : host;
 const profile = path.join(root, ".artifacts", "native-background-" + Date.now());
 const ids = [randomUUID(), randomUUID()];
-const dataRoot = path.join(profile, ".appdock");
+const dataRoot = path.join(profile, "data");
 const accountRoot = path.join(dataRoot, "web-accounts", "at365.gmail");
 fs.mkdirSync(accountRoot, { recursive: true });
 fs.writeFileSync(

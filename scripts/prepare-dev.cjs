@@ -3,7 +3,7 @@ const fs = require("node:fs"),
 const root = path.resolve(__dirname, "..");
 const host = path.resolve(root, "../AppDock.at365");
 const profile = path.join(root, ".artifacts", "gmail-dev");
-const webRoot = path.join(profile, ".appdock/web-accounts/at365.gmail");
+const webRoot = path.join(profile, "data/web-accounts/at365.gmail");
 fs.mkdirSync(profile, { recursive: true });
 fs.cpSync(
   path.join(root, "publish/Applet.Gmail.at365"),
@@ -65,7 +65,7 @@ if (
   // Chromium cookie encryption may depend on userData's Local State on Windows.
   const localState = path.join(source, "chromium/Local State");
   if (fs.existsSync(localState)) {
-    const destination = path.join(profile, ".appdock/chromium/Local State");
+    const destination = path.join(profile, "data/chromium/Local State");
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.copyFileSync(localState, destination, fs.constants.COPYFILE_EXCL);
   }

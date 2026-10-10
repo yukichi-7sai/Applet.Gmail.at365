@@ -488,7 +488,7 @@ async function launch(startupUnread = false) {
             .fromPath(directory)
             .cookies.get({ name: "fixture-login" })
         ).length,
-      path.join(profile, ".appdock/web-accounts/at365.gmail/sessions", first),
+      path.join(profile, "data/web-accounts/at365.gmail/sessions", first),
     );
     assert.equal(deleted, 0);
     await dock.evaluate(() =>

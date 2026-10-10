@@ -14,7 +14,7 @@ const accounts = [0, 1].map((i) => ({
 }));
 const accountFile = path.join(
   profile,
-  ".appdock/web-accounts/at365.gmail/accounts.json",
+  "data/web-accounts/at365.gmail/accounts.json",
 );
 fs.mkdirSync(path.dirname(accountFile), { recursive: true });
 fs.writeFileSync(

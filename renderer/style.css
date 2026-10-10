@@ -393,6 +393,11 @@ h1 {
   gap: 8px;
   align-items: center;
 }
+.sound-file select {
+  flex: 1 1 220px;
+  min-width: 160px;
+  max-width: 100%;
+}
 .sound-file span {
   flex: 1;
   min-width: 160px;

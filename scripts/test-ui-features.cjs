@@ -9,7 +9,7 @@ const root = path.resolve(__dirname, ".."),
 const hostRequire = createRequire(path.join(host, "package.json"));
 const { _electron: electron } = hostRequire("playwright");
 const profile = path.join(root, ".artifacts", "ui-features-" + Date.now());
-const webRoot = path.join(profile, ".appdock/web-accounts/at365.gmail");
+const webRoot = path.join(profile, "data/web-accounts/at365.gmail");
 const accounts = ["個人用", "仕事用"].map((name) => ({
   id: randomUUID(),
   name,
@@ -30,10 +30,24 @@ const settings = hostRequire(
 settings.host.hardwareAcceleration = false;
 settings.host.notifications = false;
 settings.extensions["at365.gmail"] = {
+  updateSource: "",
   pages: { gmail: { display: "window" } },
   enabled: false,
   settings: { notifications: false },
 };
+const keybindings = hostRequire("./out/main/shared/keybindings");
+Object.assign(
+  settings,
+  keybindings.withKeybindings(settings, [
+    ...keybindings.getKeybindings(settings),
+    ...JSON.parse(
+      fs.readFileSync(path.join(root, "extension.json"), "utf8"),
+    ).defaultKeybindings.map((row, i) => ({
+      ...row,
+      id: `fixture.gmail.${i}`,
+    })),
+  ]),
+);
 fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(settings));
 const wave = Buffer.alloc(44 + 1600);
 wave.write("RIFF");
@@ -82,7 +96,7 @@ async function remote(id, code) {
 }
 async function key(id, shift = false, keyCode = "Tab") {
   await app.evaluate(
-    ({ webContents }, { id, shift, keyCode }) => {
+    async ({ webContents, BrowserWindow }, { id, shift, keyCode }) => {
       const wc = id
         ? webContents
             .getAllWebContents()
@@ -94,6 +108,15 @@ async function key(id, shift = false, keyCode = "Tab") {
         : webContents
             .getAllWebContents()
             .find((w) => w.getURL().includes("/web/index.html"));
+      const contains = (view) =>
+        view.webContents === wc || view.children?.some(contains);
+      const owner =
+        BrowserWindow.getAllWindows().find(
+          (w) => w.isVisible() && contains(w.contentView),
+        ) || wc.getOwnerBrowserWindow();
+      owner?.show();
+      owner?.focus();
+      await new Promise((resolve) => setTimeout(resolve, 100));
       wc.focus();
       for (const type of ["keyDown", "keyUp"])
         wc.sendInputEvent({
@@ -194,19 +217,55 @@ async function close() {
 (async () => {
   try {
     await launch();
-    await app.evaluate(({ net }) => {
+    await app.evaluate(({ net, app }) => {
+      // Update coordinator captures its fetcher at construction. Keep the fixture offline.
+      const fixtureRequire = process
+        .getBuiltinModule("module")
+        .createRequire(app.getAppPath() + "/package.json");
+      const { PortableUpdates } = fixtureRequire(
+        "./out/main/main/core/portable-updates",
+      );
+      Object.defineProperty(PortableUpdates.prototype, "fetcher", {
+        get: () => net.fetch,
+      });
       globalThis.updateChecks = 0;
       globalThis.updateMode = "available";
-      net.fetch = async () => {
+      net.fetch = async (url) => {
         updateChecks++;
         if (updateMode === "unpublished")
           return new Response("", { status: 404 });
         if (updateMode === "error") return new Response("", { status: 503 });
+        if (String(url).endsWith("/update.json"))
+          return new Response(
+            JSON.stringify({
+              schemaVersion: 1,
+              kind: "host",
+              id: "host",
+              version: updateMode === "available" ? "9.0.0" : "0.1.0",
+              payload: {
+                file: "AppDock.at365.exe",
+                format: "exe",
+                size: 1,
+                sha256: "a".repeat(64),
+              },
+            }),
+          );
         return new Response(
           JSON.stringify({
             tag_name: updateMode === "available" ? "v9.0.0" : "v0.1.0",
             draft: false,
             prerelease: false,
+            assets: [
+              {
+                name: "update.json",
+                browser_download_url: "https://update-fixture.test/update.json",
+              },
+              {
+                name: "AppDock.at365.exe",
+                browser_download_url:
+                  "https://update-fixture.test/AppDock.at365.exe",
+              },
+            ],
           }),
         );
       };
@@ -225,14 +284,14 @@ async function close() {
       .click();
     await hostAbout
       .getByRole("status")
-      .filter({ hasText: "v9.0.0 が公開されています" })
+      .filter({ hasText: "9.0.0 が公開されています" })
       .waitFor();
     await hostAbout.getByRole("button", { name: "リリースを開く" }).waitFor();
     await dock.screenshot({ path: path.join(profile, "about-dark.png") });
     for (const [mode, message] of [
       ["current", "最新版です。"],
-      ["unpublished", "公開リリースが見つかりません。"],
-      ["error", "GitHub HTTP 503"],
+      ["unpublished", "HTTP 404"],
+      ["error", "HTTP 503"],
     ]) {
       await app.evaluate((_electron, mode) => {
         updateMode = mode;
@@ -240,7 +299,9 @@ async function close() {
       await hostAbout
         .getByRole("button", { name: "更新を確認", exact: true })
         .click();
-      await hostAbout.getByText(message, { exact: mode !== "error" }).waitFor();
+      await hostAbout
+        .getByText(message, { exact: mode === "current" })
+        .waitFor();
     }
     await dock
       .locator(".about-applets")
@@ -248,7 +309,7 @@ async function close() {
       .click();
     await dock
       .locator(".about-applets")
-      .getByText("更新確認先が設定されていません。", { exact: true })
+      .getByText("更新元が設定されていません。", { exact: true })
       .waitFor();
     const theme = async (value) => {
       await dock.evaluate(async (value) => {
@@ -279,10 +340,7 @@ async function close() {
     await theme("system");
     await theme("light");
     assert.equal(
-      await hostAbout
-        .getByRole("alert")
-        .textContent()
-        .then((text) => text.includes("dock:checkUpdates")),
+      (await hostAbout.innerText()).includes("dock:checkUpdates"),
       false,
     );
     await dock.screenshot({ path: path.join(profile, "about-light.png") });
@@ -413,7 +471,9 @@ async function close() {
     );
     await dock.evaluate(async () => {
       const { settings } = await window.dock.snapshot();
-      settings.value.shortcuts["at365.gmail.nextAccount"] = ["Ctrl+PageDown"];
+      settings.value.keybindings.find(
+        (row) => row.command === "at365.gmail.nextAccount",
+      ).key = "Ctrl+PageDown";
       await window.dock.saveSettings(settings.value, settings.revision);
     });
     await key(null);
@@ -435,16 +495,42 @@ async function close() {
       .getByRole("button", { name: "アカウント設定", exact: true })
       .click();
     await ui.getByLabel("このアカウントの通知音を鳴らす").check();
-    await ui.getByRole("button", { name: "WAVを選択", exact: true }).click();
+    await ui.getByRole("button", { name: "WAVを登録", exact: true }).click();
     await until(
       async () =>
-        (await snapshot()).accounts[0].sound.name === "silent.wav" &&
+        (await snapshot()).accounts[0].sound.file === "silent.wav" &&
         (await snapshot()).accounts[0].sound.file !== soundFile,
       "pick WAV",
     );
-    importedSound = (await snapshot()).accounts[0].sound.file;
-    assert.ok(importedSound.startsWith(path.join(webRoot, "sounds")));
+    importedSound = path.join(
+      profile,
+      "data",
+      "assets",
+      "applets",
+      "at365.gmail",
+      "sounds",
+      (await snapshot()).accounts[0].sound.file,
+    );
     assert.deepEqual(fs.readFileSync(importedSound), wave);
+    assert.deepEqual((await snapshot()).registeredSounds, ["silent.wav"]);
+    await ui.getByRole("button", { name: "標準音に戻す", exact: true }).click();
+    await until(
+      async () => !(await snapshot()).accounts[0].sound.file,
+      "standard sound",
+    );
+    await ui.getByLabel("登録済みの通知音").selectOption("silent.wav");
+    await until(
+      async () => (await snapshot()).accounts[0].sound.file === "silent.wav",
+      "select registered sound",
+    );
+    const different = Buffer.from(wave);
+    different[different.length - 1] = 1;
+    fs.writeFileSync(soundFile, different);
+    await ui.getByRole("button", { name: "WAVを登録", exact: true }).click();
+    await ui.getByText(/同名の別ファイルが登録されています/).waitFor();
+    assert.deepEqual(fs.readFileSync(importedSound), wave);
+    assert.equal((await snapshot()).accounts[0].sound.file, "silent.wav");
+    fs.writeFileSync(soundFile, wave);
     fs.unlinkSync(soundFile);
     await ui.getByRole("button", { name: "試聴", exact: true }).click();
     await until(
@@ -654,13 +740,11 @@ async function close() {
     const restoredAccounts = (await snapshot()).accounts;
     assert.deepEqual(restoredAccounts[0].sound, {
       enabled: true,
-      file: importedSound,
-      name: "silent.wav",
+      file: "silent.wav",
     });
     assert.deepEqual(restoredAccounts[1].sound, {
       enabled: true,
-      file: importedSound,
-      name: "legacy.wav",
+      file: "legacy.wav",
     });
     assert.deepEqual(fs.readFileSync(importedSound), wave);
     assert.ok(fs.existsSync(legacyFile));

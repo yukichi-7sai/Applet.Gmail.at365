@@ -4,6 +4,8 @@
 
 ## 環境・発行
 
+0.9.2はAppDock 0.26.14以上が必要。登録音声はsnapshot.registeredSoundsから選びsetSoundへファイル名を渡す。枠/割り当てはPC専用、登録素材は共有という境界とファイル名・同名拒否の正本は[設定同期](../AppDock.at365/docs/settings-sync.md)。
+
 0.6.0はAppDock 0.17.1が必要です。Gmailの「設定」タブはWebアカウントsnapshot.settingsとsetSettingを使用し、manifestの3つのboolean設定と履歴件数のselect設定をホストのsettings.jsonへ即時保存します。アカウント設定・監視処理は従来のものを使用します。test-accountsは双方向の設定同期、監視OFF/再開、再起動保持、不正なキー/値の拒否、900×640の設定画面も検証します。
 
 0.5.2はAppDock 0.16.3が必要です。observer V7は本人のヘッダーリンクのaria-labelから名前とメールアドレスを読み、ログイン済みの/mail/u/N/でのみaccountNameを返します。日本語/英語のGoogleアカウント表示に対応し、名前がなければメールを使用、結果は60文字まで。送信者やアカウント選択メニューからは取得しません。ホストは仮名だけを一度更新し、手動renameを優先します。test-accountsは新規仮名/名前/メール/手動名/再起動を、test-ui-featuresは再フォーカスなしの連続切替を検証します。
