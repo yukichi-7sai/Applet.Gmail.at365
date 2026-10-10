@@ -1,5 +1,7 @@
 # Gmail Appletの作業ルール
 
+実装時のテスト選択、コミット前の必要回帰、リリース前のコミット/プッシュ確認と検証証跡の再利用は、[本体・Applet共通手順](../AppDock.at365/docs/development-workflow.md)に従います。この文書の試験コマンドは、その段階に応じて実行します。
+
 最初に[A:の入口](../../AGENTS.md)、[共通作業ルール](../AGENTS.md)、[AppDockの指示](../AppDock.at365/AGENTS.md)を読む。利用者向け説明はREADME、開発情報はDEVELOPMENT、実測はVERIFICATIONへ保存する。
 
 - ホスト共通の保存先・IPC・登録素材の仕様は[設定同期](../AppDock.at365/docs/settings-sync.md)と[WebアカウントAPI](../AppDock.at365/docs/web-accounts.md)を正本にする。本文をこのrepoへ複製しない。
