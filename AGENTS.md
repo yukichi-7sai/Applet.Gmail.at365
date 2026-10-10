@@ -10,3 +10,5 @@
 - Nodeのaudio.playへ渡す通知音のファイル名はホストが自身のAppletの登録素材へ解決する。リモートGmailへNode/ホストAPIを公開しない。
 - build/test/publishはAppDockのローカルNodeと既存publish.batを使う。実装完了時はGmailを版更新して自身のpublishへ発行する。commit/push/Release/deployは別の依頼に従う。
 - 音声UIの変更ではtests、scripts/test-ui-features.cjs、ホストのsettings-sync-ui-test.cjsを確認する。GUIは隔離profileで直列実行し、ビルド中のout再生成と重ねない。実Googleログイン・実メール・実2PC同期とオフラインfixtureを区別する。
+
+- 外部公開コマンドは自身のextension.jsonで宣言する。ホストへGmail専用の許可一覧を戻さない。契約は[共通操作API](../AppDock.at365/docs/automation.md#appletによる公開宣言)を参照する。

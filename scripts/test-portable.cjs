@@ -48,7 +48,11 @@ async function until(fn, message) {
   await new Promise((r) => server.close(r));
   child = spawn(
     path.join(profile, "AppDock.at365.exe"),
-    ["--test-profile=" + profile, "--remote-debugging-port=" + port],
+    [
+      "--test-profile=" + profile,
+      "--test-local-state=" + path.join(profile, "local"),
+      "--remote-debugging-port=" + port,
+    ],
     { env, windowsHide: true, stdio: "pipe" },
   );
   child.stdout.on("data", (data) => (output += data));
@@ -79,7 +83,79 @@ async function until(fn, message) {
       (await dock.evaluate(() => window.dock.snapshot())).version,
       hostRequire("./package.json").version,
     );
-    await dock.evaluate(() => window.dock.executeCommand("at365.gmail.open"));
+    // The Applet manifest grants publication; the host has no Gmail allowlist.
+    await dock.evaluate(() => window.dock.toggleExtension("at365.gmail", true));
+    await until(
+      async () =>
+        (await dock.evaluate(() => window.dock.snapshot())).extensions.find(
+          (e) => e.id === "at365.gmail",
+        )?.state === "running",
+      "Gmail running before external execution",
+    );
+    const configFile = path.join(profile, "codex", "config.toml");
+    await dock.evaluate(
+      (file) => window.dock.automation({ kind: "selectConfig", file }),
+      configFile,
+    );
+    await dock.evaluate(() =>
+      window.dock.automation({
+        kind: "configure",
+        enabled: true,
+        allowWrite: false,
+        port: 0,
+      }),
+    );
+    await dock.evaluate(() =>
+      window.dock.automation({ kind: "setExecution", allowed: true }),
+    );
+    const registration = await dock.evaluate(() =>
+      window.dock.automation({ kind: "register" }),
+    );
+    assert.equal(registration.state.registration, "registered");
+    const { Client } = hostRequire("@modelcontextprotocol/sdk/client/index.js");
+    const { StreamableHTTPClientTransport } = hostRequire(
+      "@modelcontextprotocol/sdk/client/streamableHttp.js",
+    );
+    const headers = hostRequire("smol-toml").parse(
+      fs.readFileSync(configFile, "utf8"),
+    ).mcp_servers.AppDock.http_headers;
+    const mcp = new Client({ name: "gmail-portable-test", version: "1" });
+    try {
+      await mcp.connect(
+        new StreamableHTTPClientTransport(
+          new URL(registration.state.endpoint),
+          { requestInit: { headers } },
+        ),
+      );
+      const listed = await mcp.callTool({
+        name: "appdock_list_commands",
+        arguments: {},
+      });
+      assert.deepEqual(
+        listed.structuredContent.commands
+          .filter((c) => c.appletId === "at365.gmail")
+          .map((c) => c.id),
+        ["at365.gmail.open"],
+      );
+      const opened = await mcp.callTool({
+        name: "appdock_execute_command",
+        arguments: { id: "at365.gmail.open" },
+      });
+      assert.equal(opened.isError, undefined);
+      assert.equal(opened.structuredContent.completion, "handlerReturned");
+    } finally {
+      await mcp.close();
+    }
+    await dock.evaluate(() => window.dock.automation({ kind: "unregister" }));
+    const logs = (await dock.evaluate(() => window.dock.snapshot())).logs;
+    assert.ok(
+      logs.some(
+        (l) =>
+          l.source === "automation" &&
+          l.message.includes("target=at365.gmail.open") &&
+          l.message.includes("result=success"),
+      ),
+    );
     await until(async () => {
       ui = context.pages().find((p) => p.url().includes("/web/index.html"));
       remote = context
@@ -165,7 +241,7 @@ async function until(fn, message) {
       version: final.version,
       exitCode: child.exitCode,
       checks: [
-        "unmodified Applet",
+        "published Applet manifest discovery and MCP open with audit log",
         "actual portable EXE",
         "offline WebContentsView",
         "remote isolation",

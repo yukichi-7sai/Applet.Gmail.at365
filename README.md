@@ -2,9 +2,11 @@
 
 AppDockから、複数アカウントのGmail Web画面を開くAppletです。Googleの画面で利用者自身がログインし、アカウントごとにログイン状態を保存します。受信トレイの画面更新から新着を検知し、送信元・件名・検知時刻を新着一覧に表示します。アカウント一覧・AppDockのパネル・トレイの印とデスクトップ通知でも知らせます。
 
+Gmail 0.9.3では「Gmailを開く」をCodex連携へ公開します。Appletを有効・稼働中にし、AppDockのCodex連携でコマンド実行を許可すると利用できます。
+
 ## 動作環境と導入
 
-Windows x64、**AppDock 0.26.14以降**、Googleに接続できるインターネット環境が必要です。WebContentsViewはAppDock内蔵のElectronを使うため、別のブラウザーRuntimeやNode.jsのインストールは不要です。Gmail 0.9.1で追加したショートカット初期値の自動設定にはAppDock 0.25.2以降が必要です。
+Windows x64、**AppDock 0.26.29以降**、Googleに接続できるインターネット環境が必要です。WebContentsViewはAppDock内蔵のElectronを使うため、別のブラウザーRuntimeやNode.jsのインストールは不要です。Gmail 0.9.1で追加したショートカット初期値の自動設定にはAppDock 0.25.2以降が必要です。
 
 AppDockを完全終了し、配布された`Applet.Gmail.at365`フォルダー全体をEXE隣の`extensions`へ置きます。`extension.json`、`index.js`、`monitor.js`、`web/`が必要です。更新時もフォルダー全体を置き換え、`data`と`settings.json`は保持してください。起動後、Applet一覧で「Gmail」を有効にします。
 

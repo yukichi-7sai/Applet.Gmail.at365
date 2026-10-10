@@ -259,3 +259,14 @@
 - ホスト0.26.25のリリースに同梱する未公開版として確認。型/build/回帰21件成功。ホスト更新結果の新UIにGUIのlocatorを合わせ、失敗時のalert/status診断を追加。製品コード・版の変更なし。
 - オフラインUI機能試験の最終成功は.artifacts/ui-features-1791652505861/result.json。途中の隔離ファイル置換EPERM・案内待ち失敗を保持し、同一製品コードで全試験成功。実認証・メール操作なし。ホストの.artifacts/commit-release-0.26.25-20261011に完全ログを保存。
 - 新しい全体ZIPと個別更新ZIPの照合、固定配布物確認、公開後の匿名取得/更新チェックは今回のRelease工程で別途行う。
+
+## 2026-10-11: 0.9.3 外部公開宣言
+
+- manifestのopenだけにautomation:trueを宣言し、最低AppDock0.26.29へ更新。メール監視/画面処理は変更なし。共通契約はホストdocs/automation.md。
+- publish.bat -Test exit0、型/build/回帰21/21。scripts/test-portable.cjsで公開本体0.26.29とAppletを隔離起動し、MCP一覧がopenだけ→MCP実行→オフラインGmail表示→automationログを確認。既存の新着/履歴/クリア/停止再開/正常終了も成功。証跡.artifacts/portable-1791662954186/result.jsonと.artifacts/automation-declarations-20261011。実Google認証/メール送信なし。
+- update.zip 89390bytes / SHA256 feac42b971d45f3ae1a0f2dc34d0da9cf28b9e4eb918e379cba03cf5718cb0e7、feed/manifest/ZIP8ファイル一致。旧成功portable-1791456361645だけを安全確認後整理し最新成功3件と失敗/再利用資料保持。commit/push/Release/deployなし。
+
+## 2026-10-11: 0.9.3 コミット前検証
+
+- 対象stage tree de5c3a43d153c683ebccb4f61733c9180dda7bb8のソースを維持して回帰21/21、固定本体0.26.29と公開AppletのMCP open/オフライン表示/監査ログ/既存機能GUI成功。証跡.artifacts/commit-validation-automation-20261011とportable-1791663537520。追跡入力43件とログ/配布物のhashを保存。既存発行物不変。
+- 検証後の変更はこの記録のみ。旧成功portable-1791458903951を安全確認後に整理、最新成功3件/失敗/再利用資料保持。最終tree/commitは証跡へ記録し、push/Release/deployなし。
