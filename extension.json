@@ -3,8 +3,8 @@
   "id": "at365.gmail",
   "name": "Applet.Gmail.at365",
   "displayName": "Gmail",
-  "version": "0.9.4",
-  "minimumHostVersion": "0.26.30",
+  "version": "0.10.0",
+  "minimumHostVersion": "0.35.2",
   "runtime": "node",
   "entry": "index.js",
   "description": "アカウントごとのGmail Web画面と新着の検知",
@@ -24,6 +24,7 @@
     { "command": "at365.gmail.previousAccount", "key": "Ctrl+Shift+Tab", "enabled": true, "when": { "scope": "owner", "appletIds": [] } }
   ],
   "settings": [
+    { "key": "returnToInboxOnHide", "title": "非表示になったら受信トレイへ戻す", "type": "boolean", "default": false, "description": "アカウント切替・ページ切替・ウィンドウを閉じるなどで非表示になると受信トレイへ戻します。Gmail内のタブ切替やフォーカス移動では戻しません。" },
     { "key": "unreadOnly", "automation": true, "generateCommands": ["on", "off", "toggle"], "title": "新着一覧を未読だけ表示", "type": "boolean", "default": false, "description": "新着一覧の「未読だけ」と連動し、再起動後も保持します。" },
     { "key": "showToolbar", "automation": true, "generateCommands": ["on", "off", "toggle"], "title": "ツールバーを表示", "type": "boolean", "default": true, "description": "受信トレイ・新着一覧・設定のツールバーエリアを表示します。" },
     { "key": "openExternalWithoutConfirmation", "title": "外部リンクを確認せずに開く", "type": "boolean", "default": false, "description": "外部アプリでリンクを開く前の確認を省略します。" },
@@ -42,6 +43,7 @@
     { "id": "gmail", "title": "Gmail", "icon": "mail", "source": "web-accounts", "openCommand": "at365.gmail.open", "defaultDisplay": "page" }
   ],
   "webAccounts": {
+    "returnToStartOnHideSetting": "returnToInboxOnHide",
     "externalLinkSetting": "openExternalWithoutConfirmation",
     "avatarOrigins": ["https://lh3.googleusercontent.com", "https://lh4.googleusercontent.com", "https://lh5.googleusercontent.com", "https://lh6.googleusercontent.com", "https://lh3.google.com", "https://lh4.google.com", "https://lh5.google.com", "https://lh6.google.com"],
     "keepActive": true,

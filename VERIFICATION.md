@@ -1,5 +1,21 @@
 # 検証記録
 
+## 2026-10-14: 非表示受信トレイ復帰のコミット前確認（0.10.0）
+
+- 利用者の動作確認済み申告を受け、対象7ファイルをレビューしてstage。設定・manifest・共通ホスト契約・監視・認証の範囲と先行検証からの入力不変を確認。未解決の指摘なし。
+- 標準build/test21/21・終了0、固定AppDock0.35.2/Gmail0.10.0のGUI8群・終了0を新規実行。本体の型検査と標準391/391も成功。検証前後のGmail tree b19becf146d59ecb50acd9b431d7b298bcc611beとstage/作業内容の一致を確認。
+- 再ビルドの全8ファイルが既存update.zipと一致し、既存の発行EXE/ZIP/manifest/feedを維持。製品修正・版更新・再発行なし。検証後の変更は両VERIFICATIONの追記だけで、最終tree/commitは[コミット証跡](.artifacts/commit-validation-gmail-auto-return-20261014/validation.json)へ保存する。
+- [固定EXE GUI結果](.artifacts/auto-return-1791920625399/result.json)。source成功3回・portable成功2回を保持し、整理対象なし。主証跡・完全ログ・入力hashは[本体の証跡](../AppDock.at365/.artifacts/commit-validation-gmail-auto-return-20261014/validation.json)を参照。mainへローカルコミットし、push/Release/deployは行わない。
+
+## 2026-10-14: 非表示時の受信トレイ復帰（0.10.0）
+
+- returnToInboxOnHideを既定falseの同期boolean設定として追加。Gmail設定タブとホスト設定で即時保存・相互反映する。returnToStartOnHideSetting宣言でホストへ表示判定を委ねる。設定項目追加のため0.10.0へマイナー更新し、minimumHostVersionを0.35.2へ整合。
+- 発行前レビュー：ON/OFFの既定値、切替前枠だけの復帰、ローカルタブ/フォーカス保持、認証保護、既存監視・通知・保存契約、必要試験とREADME/開発文書を確認。未解決の指摘なし。ホストのレビューと機能別試験は[本体の検証記録](../AppDock.at365/VERIFICATION.md)。
+- ローカルNode scripts/build.cjs --testとpublish.bat -Testは終了0、標準回帰21/21、fail/skip 0。UI/NodeのTypeScript・Viteビルドも成功。ホストの型検査/ビルドと関連回帰20/20が成功。
+- scripts/test-auto-return.cjsでsource7群、発行した固定AppDock 0.35.2とGmail 0.10.0で8群が成功。全条件、最小化しても復元しないこと、遅延読込と再表示時の取消、ログイン画面不変、再起動保持を確認。設定UIの画像も確認。[固定EXE GUI結果](.artifacts/auto-return-1791920189301/result.json)と[本体/配布物の証跡](../AppDock.at365/.artifacts/gmail-auto-return-20261014/validation.json)を参照。
+- 古いShell待ち/列挙順/遅延fixture/NSIS接続方式の試験ハーネスを修正し、最終固定EXEで再検証済み。製品は同じ発行版を保持。update.json/update.zip/manifest/packageは0.10.0、最低本体0.35.2で一致。ZIPは89679 bytes、SHA256 130693d2f7f0a3d13ebde3799ee076983c6bcd5fa7c4c5b5cec81d14c330a72e、全8ファイルがpublishフォルダーと一致。
+- source成功3回、portable成功1回を保持し、削除候補なし。失敗/接続待ち証跡は調査資料として保持。実Googleの受信・下書き処理は未確認。実利用先の配置・設定変更、commit/push/Releaseは行っていない。
+
 ## 2026-10-11: 設定コマンドのコミット前確認
 
 - 対象6ファイルをstage後、固定ローカルNodeの標準回帰21/21と発行ホスト/発行Appletのportable試験を再実行し、終了0。公開設定・生成コマンド・監査ログ・停止/復帰をオフラインで確認。実Googleログイン/実メールは未操作。

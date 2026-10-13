@@ -45,6 +45,13 @@ function NavigationIcon({
 type Page = "inbox" | "arrivals" | "settings" | "preferences";
 const preferences = [
   {
+    key: "returnToInboxOnHide",
+    title: "非表示になったら受信トレイへ戻す",
+    fallback: false,
+    description:
+      "アカウント切替・AppDockのページ切替・ウィンドウを閉じるなどで非表示になると、受信トレイへ戻します。Gmail内のタブ切替やフォーカス移動では戻しません。",
+  },
+  {
     key: "showToolbar",
     title: "ツールバーを表示",
     fallback: true,
@@ -158,6 +165,7 @@ function App() {
       snapshot?.settings?.showToolbar,
       snapshot?.settings?.unreadOnly,
       snapshot?.settings?.openExternalWithoutConfirmation,
+      snapshot?.settings?.returnToInboxOnHide,
     ],
   );
   const setPreference = (key: string, value: boolean | string) => {
