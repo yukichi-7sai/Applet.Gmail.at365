@@ -33,11 +33,23 @@ interface Context {
     attention(value: boolean): Promise<unknown>;
   };
   notifications: {
-    show(
-      title: string,
-      body: string,
-      options?: { silent?: boolean; command?: string },
-    ): Promise<unknown>;
+    publish(request: {
+      typeId: string;
+      title: string;
+      body: string;
+      silent: boolean;
+      historyText: { title: string; body: string };
+      actions: {
+        key: string;
+        label: string;
+        command: string;
+        primary: boolean;
+      }[];
+    }): Promise<
+      | { status: "accepted"; notificationId: string }
+      | { status: "suppressed"; reason: string }
+    >;
+    end(id: string, status: "resolved" | "withdrawn"): Promise<unknown>;
   };
   audio: { play(file?: string): Promise<unknown> };
   ui: { showPanel(panel: unknown): Promise<unknown> };
@@ -50,6 +62,14 @@ interface Context {
 }
 const ID = "at365.gmail";
 const monitors = new Map<string, InboxMonitor>();
+const notices = new Map<string, string>();
+async function endNotice(accountId: string, status: "resolved" | "withdrawn") {
+  const id = notices.get(accountId);
+  if (!id) return;
+  notices.delete(accountId);
+  // The host may already have expired/dismissed the notification.
+  await context.notifications.end(id, status).catch(() => {});
+}
 let context: Context,
   active = false,
   busy = false,
@@ -86,7 +106,10 @@ async function tick() {
     const data = await context.webAccounts.read();
     if (!active) return;
     for (const id of monitors.keys())
-      if (!data.accounts.some((a) => a.id === id)) monitors.delete(id);
+      if (!data.accounts.some((a) => a.id === id)) {
+        monitors.delete(id);
+        await endNotice(id, "withdrawn");
+      }
     const enabled = context.settings.get("monitoring", true);
     for (const a of data.accounts) {
       let monitor = monitors.get(a.id);
@@ -94,15 +117,25 @@ async function tick() {
         monitor = new InboxMonitor();
         monitors.set(a.id, monitor);
       }
-      if (data.acknowledged.includes(a.id)) monitor.acknowledge();
+      if (data.acknowledged.includes(a.id)) {
+        monitor.acknowledge();
+        await endNotice(a.id, "resolved");
+      }
       monitor.setHistoryLimit(
         Number(context.settings.get("historyLimit", "50")),
       );
-      if (data.monitoringResets?.includes(a.id)) monitor.reset();
-      if (!enabled || a.monitoring === false) monitor.reset();
-      else {
+      if (data.monitoringResets?.includes(a.id)) {
+        monitor.reset();
+        await endNotice(a.id, "withdrawn");
+      }
+      if (!context.settings.get("notifications", true))
+        await endNotice(a.id, "withdrawn");
+      if (!enabled || a.monitoring === false) {
+        monitor.reset();
+        await endNotice(a.id, "withdrawn");
+      } else {
         const arrived = monitor.observe(a.observation);
-        if (arrived && a.sound?.enabled) {
+        if (arrived && a.sound?.enabled && a.sound.file) {
           try {
             await context.audio.play(a.sound.file);
           } catch {
@@ -111,23 +144,42 @@ async function tick() {
             );
           }
         }
-        if (arrived && context.settings.get("notifications", true))
-          await context.notifications.show(
-            "Gmail — " + a.name,
-            context.settings.get("notificationDetails", false)
-              ? monitor.notificationArrivals
-                  .slice(0, 3)
-                  .map(
-                    (mail) =>
-                      `${mail.sender || "送信元を取得できません"}：${mail.subject || "件名を取得できません"}`,
-                  )
-                  .join("\n") +
-                  (monitor.notificationArrivals.length > 3
-                    ? `\nほか ${monitor.notificationArrivals.length - 3} 件`
-                    : "")
-              : `未読の新着を ${monitor.notificationArrivals.length} 件検知しました。`,
-            { command: ID + ".open", silent: true },
-          );
+        if (arrived && context.settings.get("notifications", true)) {
+          await endNotice(a.id, "withdrawn");
+          const body = context.settings.get("notificationDetails", false)
+            ? monitor.notificationArrivals
+                .slice(0, 3)
+                .map(
+                  (mail) =>
+                    `${mail.sender || "送信元を取得できません"}：${mail.subject || "件名を取得できません"}`,
+                )
+                .join("\n") +
+              (monitor.notificationArrivals.length > 3
+                ? `\nほか ${monitor.notificationArrivals.length - 3} 件`
+                : "")
+            : `未読の新着を ${monitor.notificationArrivals.length} 件検知しました。`;
+          const result = await context.notifications.publish({
+            typeId: "new-mail",
+            title: ("Gmail — " + a.name).slice(0, 200),
+            body: body.slice(0, 2000),
+            silent: true,
+            historyText: {
+              title: "Gmailの新着メール",
+              body: "未読の新着メールを検知しました。",
+            },
+            actions: [
+              {
+                key: "open",
+                label: "Gmailを開く",
+                command: ID + ".open",
+                primary: true,
+              },
+            ],
+          });
+          if (active && result.status === "accepted")
+            notices.set(a.id, result.notificationId);
+        }
+        if (!monitor.attention) await endNotice(a.id, "resolved");
       }
       if (!active) return;
       await context.webAccounts.report(
@@ -180,6 +232,7 @@ export async function activate(c: Context) {
   );
   c.commands.register(ID + ".acknowledge", "新着表示をクリア", async () => {
     for (const monitor of monitors.values()) monitor.acknowledge();
+    for (const id of [...notices.keys()]) await endNotice(id, "resolved");
     await tick();
   });
   c.tray.add("Gmailを開く", ID + ".open");
@@ -194,4 +247,6 @@ export async function deactivate() {
   active = false;
   cancel?.();
   monitors.clear();
+  // The host withdraws this Applet generation's notifications on stop.
+  notices.clear();
 }

@@ -12,3 +12,5 @@
 - 音声UIの変更ではtests、scripts/test-ui-features.cjs、ホストのsettings-sync-ui-test.cjsを確認する。GUIは隔離profileで直列実行し、ビルド中のout再生成と重ねない。実Googleログイン・実メール・実2PC同期とオフラインfixtureを区別する。
 
 - 外部公開コマンドは自身のextension.jsonで宣言する。ホストへGmail専用の許可一覧を戻さない。契約は[共通操作API](../AppDock.at365/docs/automation.md#appletによる公開宣言)を参照する。
+
+- 音声再生は[共通音声再生API](../AppDock.at365/docs/audio-playback.md)へ集約する。WAV未選択は無音。新着通知は宣言済みnew-mailとnotifications.publish/endを使い、旧showや独自プレイヤーへ戻さない。

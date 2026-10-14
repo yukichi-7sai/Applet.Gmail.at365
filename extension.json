@@ -3,8 +3,8 @@
   "id": "at365.gmail",
   "name": "Applet.Gmail.at365",
   "displayName": "Gmail",
-  "version": "0.10.1",
-  "minimumHostVersion": "0.36.8",
+  "version": "0.11.0",
+  "minimumHostVersion": "0.42.0",
   "runtime": "node",
   "entry": "index.js",
   "description": "アカウントごとのGmail Web画面と新着の検知",
@@ -243,6 +243,32 @@
       "settings": [
         "openExternalWithoutConfirmation"
       ]
+    }
+  ],
+  "notificationTypes": [
+    {
+      "typeId": "new-mail",
+      "title": "新着メール",
+      "description": "Gmailで未読の新着を検知したときの通知です。",
+      "levels": [
+        "info"
+      ],
+      "defaultLevel": "info",
+      "defaultEnabled": true,
+      "canDisable": true,
+      "disabledControlReason": "",
+      "allowedTargets": [
+        "banner",
+        "desktop",
+        "windows"
+      ],
+      "defaultTargets": [
+        "windows"
+      ],
+      "requiredTargets": [],
+      "lifetimePolicy": "userDuration",
+      "defaultDurationSeconds": 10,
+      "history": "persistent"
     }
   ]
 }

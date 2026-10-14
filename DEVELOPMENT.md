@@ -141,3 +141,7 @@ returnToInboxOnHideは既定falseの同期boolean設定です。manifestのretur
 ## 設定画面の構成
 
 `extension.json`の`settingSections`で用途別のカードを宣言します。描画・余白・入力・検索・保存は[本体の共通テンプレート](../AppDock.at365/docs/extensions.md#共通の設定ページ)へ委譲し、Applet固有の設定フォームやCSSを複製しません。設定キー・既定値・実行処理を変えずに並び順を調整できます。最低本体版は0.36.8です。
+
+## 共通再生と種類指定通知
+
+0.11.0は最低AppDock 0.42.0です。通知音は既存audio.playから本体の共通キューへ渡し、ビープを廃止します。新着通知はnew-mailを静的宣言してnotifications.publish/endを使います。既存notificationsは発行スイッチとして保持し、種類別の表示先・寿命・読み上げは共通設定へ委ねます。通知IDの寿命、安全な履歴、再生待ちの仕様は[共通設計](../AppDock.at365/docs/audio-playback.md)を正本とします。

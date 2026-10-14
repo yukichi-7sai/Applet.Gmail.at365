@@ -991,7 +991,7 @@ function App() {
                         );
                       }}
                     >
-                      <option value="">標準のビープ音</option>
+                      <option value="">未選択（無音）</option>
                       {account?.sound.file &&
                         !snapshot?.registeredSounds?.includes(
                           account.sound.file,
@@ -1028,10 +1028,10 @@ function App() {
                         )
                       }
                     >
-                      標準音に戻す
+                      選択を解除
                     </button>
                     <button
-                      disabled={busy || !account}
+                      disabled={busy || !account?.sound.file}
                       onClick={() =>
                         void run(() =>
                           window.webAccounts.testSound(account!.id),
@@ -1042,7 +1042,7 @@ function App() {
                     </button>
                   </div>
                   <p className="hint">
-                    登録したWAVはAppDockフォルダーに保存し、一覧から何度でも選べます。同名の別ファイルは登録できません。試聴は通知音がOFFでも再生できます。
+                    登録したWAVはAppDockフォルダーに保存し、一覧から何度でも選べます。同名の別ファイルは登録できません。未選択では鳴りません。試聴はWAV選択済みなら通知音がOFFでも再生できます。
                   </p>
                   {account?.soundError && (
                     <p className="error-banner" role="alert">
@@ -1055,6 +1055,8 @@ function App() {
                   <p>
                     新着の監視・通知・通知に件名を表示する設定は、AppDockの「設定
                     → Gmail」で変更できます。
+                    通知の表示先・表示時間・読み上げは「設定 → 通知 → Gmail →
+                    新着メール」で変更できます。
                   </p>
                   <div className="info-grid">
                     <div>

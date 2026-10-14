@@ -1,5 +1,20 @@
 # 検証記録
 
+## 2026-10-15: 共通通知・ビープ廃止のコミット確認
+
+- main上の今回10ファイルを再レビューし、通知発行/終了・既存OFF設定・安全な履歴・WAV未選択の無音・共通APIと設計の整合に未解決指摘なし。実装時の標準22/22、ビルド/発行、固定AppDock0.42.0の音声/通知専用GUIの成功記録を、入力/ログ/配布物hashと照合して再利用した。
+- 本体は関連65件を再利用し、未実行分406件を追加して標準471/471成功。共通プレイヤー、通知読み上げ、Node/.NET通知設定も成功記録を再利用。製品入力は不変で、追加の版更新/再発行は不要。Gmail0.11.0のZIP/feedを維持する。
+- [本体の主証跡](../AppDock.at365/.artifacts/commit-validation-audio-20261015/validation.json)と[当repoのcommit/tree記録](.artifacts/commit-validation-audio-20261015/validation.json)に照合結果を保存する。検証後の追加はVERIFICATIONのみ。旧全機能GUIの更新画面参照は未対応であり、専用GUIの成功と区別する。実受信・聴感は未確認。ローカルコミットまでで、push・Release・実利用先deployは行わない。
+
+## 2026-10-15: 共通通知への移行・通知音のビープ廃止（0.11.0）
+
+- main `c82260d`上で実装。new-mailを静的宣言し、publish/endへ移行。既存notifications/notificationDetailsの値を保持し、表示先・寿命・読み上げは本体の共通方針へ委譲する。通知履歴はメール情報を含まない要約。アカウントごとに直近IDを管理し、新着交代/監視OFF/削除はwithdrawn、確認/既読化はresolved。WAV未選択は無音、試聴を無効化する。今後の音声再生の入口も共通設計・AGENTSへ明記した。
+- 型検査・renderer build・標準回帰**22/22成功**。新着の種類・silent・安全な履歴、通知抑制後の再送なし、終了、空ファイルを再生しないことを追加検証。発行前レビューと本体側65件の検証は`../AppDock.at365/.artifacts/audio-unification-20261015/review.md`および`validation.json`を参照。
+- sourceの音声/通知専用GUI: `.artifacts/ui-features-1791995389159/result.json`。固定AppDock0.42.0のGUI: `.artifacts/ui-features-1791995939705/result.json`。WAV登録、OFF中試聴、選択解除と無音、試聴無効化、実Nodeから共通通知の発行/抑制/終了を確認。`sound-current.png`で選択欄・操作ボタン・案内文の表示を目視確認。実Google・実メール・聴感は未確認。
+- `scripts/test-ui-features.cjs [固定EXE] --audio-only`で今回の対象を検証。既存スクリプトへstartupReady待ちと配布版用CDP/main inspector接続を追加した。旧全機能モードは今回と無関係なホスト更新画面の旧DOM参照で失敗するため、全機能GUI成功とは扱わない。配布EXEをコピーしSHA256を照合してから起動する。
+- ビープ廃止と通知の操作契約変更のため0.11.0へマイナー更新し、最低ホストを0.42.0へ変更。Windows通知クリックは共通の通知センターへ移動し、通知内の操作からGmailを開く。`publish.bat`終了0、publish配下の本体・manifest・update.json/ZIPの版と最低ホストが一致。ZIP SHA256: `cca9bd482b1b87d4d93dad389f6ac3b731eea5d0d5c98455b6a067a05cd2957e`。
+- コマンド・入力/ログ/成果物hashは本体の`.artifacts/audio-unification-20261015/validation.json`に両repoをまとめて記録。製品入力の後続変更なし、試験ランナーの追加は最終固定EXE試験で検証済み。今回の成功GUIはsource/portable各1件なので保持。失敗診断と既存の所有/再利用状態未照合のフォルダーも保持し、隔離プロセス残存0を確認。commit・push・Release・実利用先deployは未実施。
+
 ## 2026-10-14: 設定テンプレートの仕上げとコミット前検証
 
 - 標準回帰 **21/21** が終了0。設定宣言と版以外の実行処理を変更していないこと、manifestの既存設定/コマンドを保持していることを再レビューし、未解決指摘なし。

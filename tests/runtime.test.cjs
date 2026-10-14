@@ -2,6 +2,125 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { activate, deactivate } = require("../out/index");
 
+test("typed mail notifications honor suppression, use safe history, end per account and never beep", async () => {
+  let tick,
+    onChanged,
+    acknowledged = [],
+    suppressed = false;
+  const commands = new Map(),
+    published = [],
+    ended = [],
+    sounds = [];
+  const values = { notifications: true, notificationDetails: true };
+  const keys = [];
+  const observation = (key) => {
+    keys.unshift(key);
+    return {
+      ready: true,
+      context: "inbox",
+      document: "one",
+      revision: Date.now(),
+      keys: [...keys],
+      unread: [key],
+      read: keys.slice(1),
+    };
+  };
+  const account = {
+    id: "one",
+    name: "Private account",
+    monitoring: true,
+    sound: { enabled: true, file: "" },
+    observation: observation("first"),
+  };
+  const c = {
+    commands: {
+      register(id, _title, fn) {
+        commands.set(id, fn);
+      },
+    },
+    ui: { async showPanel() {} },
+    tray: { add() {}, async attention() {} },
+    settings: {
+      get: (key, fallback) => values[key] ?? fallback,
+      onChanged(fn) {
+        onChanged = fn;
+      },
+    },
+    scheduler: {
+      every(_ms, fn) {
+        tick = fn;
+        return () => {};
+      },
+    },
+    log: {
+      async error(text) {
+        throw Error(text);
+      },
+    },
+    audio: {
+      async play(file) {
+        sounds.push(file);
+      },
+    },
+    notifications: {
+      async publish(input) {
+        published.push(input);
+        return suppressed
+          ? { status: "suppressed", reason: "type-disabled" }
+          : { status: "accepted", notificationId: String(published.length) };
+      },
+      async end(id, status) {
+        ended.push({ id, status });
+      },
+    },
+    webAccounts: {
+      async start() {},
+      async open() {},
+      async read() {
+        const result = { accounts: [account], acknowledged };
+        acknowledged = [];
+        return result;
+      },
+      async report() {},
+    },
+  };
+  try {
+    await activate(c);
+    assert.equal(published[0].typeId, "new-mail");
+    assert.equal(published[0].silent, true);
+    assert.deepEqual(published[0].historyText, {
+      title: "Gmailの新着メール",
+      body: "未読の新着メールを検知しました。",
+    });
+    assert.deepEqual(sounds, []);
+    await tick();
+    assert.equal(published.length, 1);
+    account.observation = observation("second");
+    await tick();
+    assert.deepEqual(ended, [{ id: "1", status: "withdrawn" }]);
+    await commands.get("at365.gmail.acknowledge")();
+    assert.deepEqual(ended.at(-1), { id: "2", status: "resolved" });
+    suppressed = true;
+    account.observation = observation("third");
+    await tick();
+    suppressed = false;
+    await tick();
+    assert.equal(
+      published.length,
+      3,
+      "policy changes do not replay old arrivals",
+    );
+    account.observation = observation("fourth");
+    await tick();
+    values.notifications = false;
+    await onChanged();
+    assert.deepEqual(ended.at(-1), { id: "4", status: "withdrawn" });
+    assert.equal(published.length, 4);
+  } finally {
+    await deactivate();
+  }
+});
+
 test("per-account monitoring clears only its history and attention, suppresses sound, and reimports unread on resume", async () => {
   let tick,
     resets = [];
@@ -35,8 +154,10 @@ test("per-account monitoring clears only its history and attention, suppresses s
       },
     },
     notifications: {
-      async show(title) {
-        notices.push(title);
+      async end() {},
+      async publish(request) {
+        notices.push(request.title);
+        return { status: "accepted", notificationId: String(notices.length) };
       },
     },
     audio: {
@@ -159,8 +280,10 @@ test("account sounds are independent of desktop notifications and cycle commands
     tray: { add() {}, async attention() {} },
     ui: { async showPanel() {} },
     notifications: {
-      async show(...args) {
-        notices.push(args);
+      async end() {},
+      async publish(request) {
+        notices.push(request);
+        return { status: "accepted", notificationId: String(notices.length) };
       },
     },
     settings: {
@@ -208,7 +331,9 @@ test("account sounds are independent of desktop notifications and cycle commands
     assert.ok(
       notices.every(
         (notice) =>
-          notice[2].silent === true && notice[2].command === "at365.gmail.open",
+          notice.silent === true &&
+          notice.actions[0].command === "at365.gmail.open" &&
+          notice.typeId === "new-mail",
       ),
     );
     await commands.get("at365.gmail.acknowledge")();
@@ -238,8 +363,13 @@ test("runtime reports arrivals and keeps notification metadata opt-in; settings 
     commands: { register() {} },
     tray: { add() {}, async attention() {} },
     notifications: {
-      async show(title, body, options) {
-        notifications.push({ title, body, options });
+      async end() {},
+      async publish(request) {
+        notifications.push(request);
+        return {
+          status: "accepted",
+          notificationId: String(notifications.length),
+        };
       },
     },
     ui: { async showPanel() {} },
@@ -296,7 +426,7 @@ test("runtime reports arrivals and keeps notification metadata opt-in; settings 
     observation = o(["new", "old"], ["new"]);
     await tick();
     assert.equal(notifications.length, 1);
-    assert.equal(notifications[0].options.silent, true);
+    assert.equal(notifications[0].silent, true);
     assert.equal(notifications[0].body, "未読の新着を 1 件検知しました。");
     assert.equal(
       reports.at(-1).data.arrivals[0].subject,

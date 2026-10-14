@@ -66,10 +66,13 @@ const soundFile = path.join(profile, "silent.wav");
 fs.writeFileSync(soundFile, wave);
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
-const executable = process.argv[2]
+const portable = process.argv[2] && !process.argv[2].startsWith("--");
+const executable = portable
   ? path.resolve(process.argv[2])
   : hostRequire("electron");
 let app, dock, ui, importedSound;
+let portableProcess, portableBrowser;
+const { freePort, inspect, electronExpression } = hostRequire('./scripts/electron-main-helper.cjs');
 async function until(fn, message) {
   const deadline = Date.now() + 20000;
   while (Date.now() < deadline) {
@@ -138,13 +141,22 @@ async function launch() {
     path.join(profile, "settings.json"),
     JSON.stringify(current),
   );
-  app = await electron.launch({
-    executablePath: executable,
-    args: process.argv[2]
-      ? ["--test-profile=" + profile]
-      : [host, "--test-profile=" + profile],
-    env,
-  });
+  if (portable) {
+    const target = path.join(profile,'AppDock.at365.exe');
+    const hash = p => require('node:crypto').createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+    fs.copyFileSync(executable,target); assert.equal(hash(target),hash(executable));
+    const port=await freePort(), mainPort=await freePort();
+    portableProcess=require('node:child_process').spawn(target,['--test-profile='+profile,'--remote-debugging-port='+port,'--inspect='+mainPort],{cwd:host,env,windowsHide:true,stdio:'ignore'});
+    await until(async()=>{try {portableBrowser=await hostRequire('playwright').chromium.connectOverCDP('http://127.0.0.1:'+port,{timeout:1000});return true;}catch{return false;}},'portable CDP');
+    app={
+      context:()=>portableBrowser.contexts()[0],
+      firstWindow:async()=>{let page; await until(()=>{page=portableBrowser.contexts()[0].pages().find(p=>p.url().startsWith('appdock://host/'));return !!page;},'portable host');return page;},
+      evaluate:(fn,arg)=>inspect(mainPort,`(${fn.toString()})(${electronExpression},${JSON.stringify(arg)??'undefined'})`),
+      close:async()=>{await until(()=>portableProcess.exitCode!==null,'portable exit');await portableBrowser.close();},
+    };
+  } else {
+    app = await electron.launch({executablePath:executable,args:[host,'--test-profile='+profile],env});
+  }
   dock = await app.firstWindow();
   await dock.waitForFunction(() => !!window.dock);
   await app.evaluate(
@@ -184,6 +196,11 @@ async function launch() {
     },
     { soundFile, accounts },
   );
+  await until(
+    async () =>
+      (await dock.evaluate(() => window.dock.snapshot())).startupReady,
+    "host ready",
+  );
   await dock.evaluate(() => window.dock.toggleExtension("at365.gmail", true));
   await until(
     async () =>
@@ -214,9 +231,159 @@ async function close() {
   await app.evaluate(({ app }) => app.quit());
   await app.close();
 }
+async function audioAndNotifications() {
+  const checks = [];
+  await ui.getByRole("button", { name: "アカウント設定", exact: true }).click();
+  const preview = ui.getByRole("button", { name: "試聴", exact: true });
+  assert.equal(await preview.isDisabled(), true);
+  assert.equal(
+    await ui.getByText("標準のビープ音", { exact: true }).count(),
+    0,
+  );
+  await ui.getByRole("button", { name: "WAVを登録", exact: true }).click();
+  await until(
+    async () => (await snapshot()).accounts[0].sound.file === "silent.wav",
+    "registered WAV",
+  );
+  assert.equal((await snapshot()).accounts[0].sound.enabled, false);
+  await preview.click();
+  await until(
+    () => app.evaluate(() => fixtureSounds.length === 1),
+    "preview while disabled",
+  );
+  await ui.getByRole("button", { name: "選択を解除", exact: true }).click();
+  await until(
+    async () => !(await snapshot()).accounts[0].sound.file,
+    "silent selection",
+  );
+  assert.equal(await preview.isDisabled(), true);
+  await ui.getByLabel("登録済みの通知音").selectOption("silent.wav");
+  await ui.getByLabel("このアカウントの通知音を鳴らす").check();
+  await ui.screenshot({ path: path.join(profile, "sound-current.png") });
+  checks.push(
+    "WAV registration, preview while OFF, clear to silence, disabled empty preview and independent sound enable",
+  );
+  await app.evaluate(({ app }) => {
+    const req = process
+      .getBuiltinModule("module")
+      .createRequire(app.getAppPath() + "/package.json");
+    const Type = req(
+      "./out/main/main/core/typed-notifications",
+    ).TypedNotifications;
+    const publish = Type.prototype.publish,
+      end = Type.prototype.end;
+    globalThis.fixtureTyped = [];
+    globalThis.fixtureEnded = [];
+    Type.prototype.publish = function (owner, type, content, ...rest) {
+      const result = publish.call(this, owner, type, content, ...rest);
+      if (owner.ownerId === "at365.gmail")
+        fixtureTyped.push({
+          type,
+          content: {
+            title: content.title,
+            historyText: content.historyText,
+            windowsSilent: content.windowsSilent,
+          },
+          result,
+        });
+      return result;
+    };
+    Type.prototype.end = function (owner, id, ...rest) {
+      if (owner.ownerId === "at365.gmail") fixtureEnded.push(id);
+      return end.call(this, owner, id, ...rest);
+    };
+  });
+  const enable = async (value) =>
+    dock.evaluate(async (value) => {
+      const s = await window.dock.snapshot();
+      s.settings.value.host.notifications = true;
+      s.settings.value.extensions["at365.gmail"].settings.notifications = true;
+      s.settings.value.notificationPreferences = {
+        overrides: [
+          {
+            ownerKind: "applet",
+            ownerId: "at365.gmail",
+            typeId: "new-mail",
+            enabled: value,
+            targets: [],
+            speak: false,
+          },
+        ],
+      };
+      await window.dock.saveSettings(s.settings.value, s.settings.revision);
+    }, value);
+  await enable(true);
+  const arrival = (key) =>
+    remote(
+      accounts[0].id,
+      `document.querySelector('tbody').insertAdjacentHTML('afterbegin', '<tr class="zA zE"><td><span class="bog" data-legacy-thread-id="${key}">Fixture new message</span></td></tr>')`,
+    );
+  await arrival("typed-one");
+  await until(
+    () => app.evaluate(() => fixtureTyped.length === 1),
+    "typed Gmail notice",
+  );
+  const first = await app.evaluate(() => fixtureTyped[0]);
+  assert.equal(first.type, "new-mail");
+  assert.equal(first.result.status, "accepted");
+  assert.equal(first.content.windowsSilent, true);
+  assert.deepEqual(first.content.historyText, {
+    title: "Gmailの新着メール",
+    body: "未読の新着メールを検知しました。",
+  });
+  await until(
+    () => app.evaluate(() => fixtureSounds.length === 2),
+    "arrival sound",
+  );
+  await dock.evaluate(() =>
+    window.dock.executeCommand("at365.gmail.acknowledge"),
+  );
+  assert(
+    (await app.evaluate(() => fixtureEnded)).includes(
+      first.result.notificationId,
+    ),
+  );
+  await enable(false);
+  await arrival("typed-two");
+  await until(
+    () => app.evaluate(() => fixtureTyped.length === 2),
+    "suppressed Gmail notice",
+  );
+  assert.equal(
+    (await app.evaluate(() => fixtureTyped[1])).result.status,
+    "suppressed",
+  );
+  await enable(true);
+  await new Promise((r) => setTimeout(r, 2500));
+  assert.equal(await app.evaluate(() => fixtureTyped.length), 2);
+  checks.push(
+    "real Gmail Node publishes new-mail through common policy, safe history and silent Windows delivery; acknowledge ends; disabled kind suppresses without replay",
+  );
+  await close();
+  app = undefined;
+  const result = {
+    success: true,
+    profile,
+    checks,
+    version: require("../package.json").version,
+    hostSha256: require("node:crypto")
+      .createHash("sha256")
+      .update(fs.readFileSync(executable))
+      .digest("hex"),
+  };
+  fs.writeFileSync(
+    path.join(profile, "result.json"),
+    JSON.stringify(result, null, 2),
+  );
+  console.log(JSON.stringify(result));
+}
 (async () => {
   try {
     await launch();
+    if (process.argv.includes("--audio-only")) {
+      await audioAndNotifications();
+      return;
+    }
     await app.evaluate(({ net, app }) => {
       // Update coordinator captures its fetcher at construction. Keep the fixture offline.
       const fixtureRequire = process
@@ -288,7 +455,9 @@ async function close() {
       .filter({ hasText: "9.0.0 に更新できます" })
       .waitFor();
     await hostAbout.locator(".update-result-details summary").click();
-    await hostAbout.getByText("9.0.0 が公開されています。", { exact: true }).waitFor();
+    await hostAbout
+      .getByText("9.0.0 が公開されています。", { exact: true })
+      .waitFor();
     await hostAbout.getByRole("button", { name: "リリースを開く" }).waitFor();
     await dock.screenshot({ path: path.join(profile, "about-dark.png") });
     for (const [mode, message] of [
@@ -517,10 +686,18 @@ async function close() {
     );
     assert.deepEqual(fs.readFileSync(importedSound), wave);
     assert.deepEqual((await snapshot()).registeredSounds, ["silent.wav"]);
-    await ui.getByRole("button", { name: "標準音に戻す", exact: true }).click();
+    await ui.getByRole("button", { name: "選択を解除", exact: true }).click();
     await until(
       async () => !(await snapshot()).accounts[0].sound.file,
-      "standard sound",
+      "empty sound is silent",
+    );
+    assert.equal(
+      await ui.getByRole("button", { name: "試聴", exact: true }).isDisabled(),
+      true,
+    );
+    assert.equal(
+      await ui.getByText("標準のビープ音", { exact: true }).count(),
+      0,
     );
     await ui.getByLabel("登録済みの通知音").selectOption("silent.wav");
     await until(
@@ -756,7 +933,7 @@ async function close() {
     await ui
       .getByRole("button", { name: "アカウント設定", exact: true })
       .click();
-    await ui.getByRole("button", { name: "標準音に戻す", exact: true }).click();
+    await ui.getByRole("button", { name: "選択を解除", exact: true }).click();
     await until(
       async () => !(await snapshot()).accounts[0].sound.file,
       "reset sound",
@@ -802,10 +979,23 @@ async function close() {
     console.log(profile);
   } finally {
     if (ui && !fs.existsSync(path.join(profile, "result.json"))) {
-      fs.writeFileSync(path.join(profile, "ui-diagnostics.json"), JSON.stringify({
-        alerts: await ui.getByRole("alert").allTextContents().catch(() => []),
-        statuses: await ui.getByRole("status").allTextContents().catch(() => []),
-      }, null, 2));
+      fs.writeFileSync(
+        path.join(profile, "ui-diagnostics.json"),
+        JSON.stringify(
+          {
+            alerts: await ui
+              .getByRole("alert")
+              .allTextContents()
+              .catch(() => []),
+            statuses: await ui
+              .getByRole("status")
+              .allTextContents()
+              .catch(() => []),
+          },
+          null,
+          2,
+        ),
+      );
     }
     if (app) await close().catch(() => {});
   }
