@@ -6,7 +6,7 @@ Gmailでは「Gmailを開く」をCodex連携へ公開します。Appletを有�
 
 ## 動作環境と導入
 
-Windows x64、**AppDock 0.35.2以降**、Googleに接続できるインターネット環境が必要です。WebContentsViewはAppDock内蔵のElectronを使うため、別のブラウザーRuntimeやNode.jsのインストールは不要です。Gmail 0.9.1で追加したショートカット初期値の自動設定にはAppDock 0.25.2以降が必要です。
+Windows x64、**AppDock 0.36.8以降**、Googleに接続できるインターネット環境が必要です。WebContentsViewはAppDock内蔵のElectronを使うため、別のブラウザーRuntimeやNode.jsのインストールは不要です。Gmail 0.9.1で追加したショートカット初期値の自動設定にはAppDock 0.25.2以降が必要です。
 
 AppDockを完全終了し、配布された`Applet.Gmail.at365`フォルダー全体をEXE隣の`extensions`へ置きます。`extension.json`、`index.js`、`monitor.js`、`web/`が必要です。更新時もフォルダー全体を置き換え、`data`と`settings.json`は保持してください。起動後、Applet一覧で「Gmail」を有効にします。
 
@@ -110,3 +110,7 @@ AppDockの「設定 → バージョン情報・更新」の一括更新、ま�
 [開発ガイド](DEVELOPMENT.md)
 
 0.9.4では新着監視・新着通知・ツールバー表示・未読のみ表示・履歴保存件数をCodexから変更できます。AppDockのCodex連携で、コマンド実行と設定変更の両方を許可してください。4つのON/OFF設定には、通常のショートカットへ割り当てられるON/OFF/切り替えコマンドも自動追加されます。認証、通知内容の表示、外部リンクの確認省略は公開しません。
+
+## 共通の設定画面
+
+AppDockの「設定」またはApplet詳細の「設定」タブで、受信トレイと表示・新着の監視と通知・外部リンクのカードから編集できます。本体と同じテーマ・入力欄・自動保存を使い、起動待ちは末尾の共通カードにあり、ページを持つAppletでは表示方法も設定できます。既存の設定値・コマンドIDは引き継ぎます。

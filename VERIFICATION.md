@@ -1,5 +1,21 @@
 # 検証記録
 
+## 2026-10-14: 設定テンプレートの仕上げとコミット前検証
+
+- 標準回帰 **21/21** が終了0。設定宣言と版以外の実行処理を変更していないこと、manifestの既存設定/コマンドを保持していることを再レビューし、未解決指摘なし。
+- 最終AppDock 0.36.8の固定EXEと当Appletの発行物で、共通フォーム・全項目・即時保存・明暗テーマ・狭い幅を確認。本体標準回帰410件と、設定/検索/Shell/画面遷移/WebAppletの必要GUIが成功。実OS操作/実サービスを模擬試験の成功に含めない。
+- 前回のpublishの版を維持し、個別ZIPと発行ファイルの全hash一致を再確認。本体だけが余白・グループ背景の修正により再発行されている。
+- [今回の標準回帰・検証証跡](.artifacts/commit-validation-settings-template-20261014/validation.json)と[本体のGUI証跡](../AppDock.at365/.artifacts/commit-validation-applet-settings-20261014/validation.json)を保存。検証treeを照合後、VERIFICATIONのみを追記してコミットする。固定配布物と再利用資料を保持。push・Release・実利用先deployなし。
+
+
+## 2026-10-14: 共通設定テンプレートへの統一（0.10.1）
+
+- extension.jsonのsettingSectionsで用途別のカードを宣言し、最低本体版を0.36.8へ統一。既存設定のキー/型/既定値、操作・コマンドは旧HEADとJSON比較で同一。描画と保存は本体の共通テンプレートへ委譲し、実行処理や保存領域は変更していない。
+- 発行前レビューで設定/操作の参照・重複・配置漏れ、設定互換性、版と最低本体版、共通ガイドへの参照を確認。未解決指摘なし。設定項目・保存ファイルの増減や破壊的変更がないためパッチ更新。
+- publish.bat終了0。manifest/feed/配布フォルダーの版は0.10.1、minimumHostVersionは0.36.8。update.zipは89902 bytes、SHA256 6cbca34b02af41e8329f120bdee9610a9af1e811d823ac4f877e798af82159f3。ZIP全ファイルと配布フォルダーのhash一致を確認。[発行ログと照合](.artifacts/settings-template-20261014/)を保存。
+- 固定AppDock 0.36.8と今回の発行物を隔離配置し、設定を停止状態で表示・保存できること、全項目と共通起動欄、明暗テーマ/1280・760幅を確認。本体GUI全4群・検索7群・画面遷移が成功。[共通GUI結果](../AppDock.at365/.artifacts/applet-settings-1791960532161/result.json)と[本体検証記録](../AppDock.at365/VERIFICATION.md)を参照。本体の標準回帰は410/410、fail/skip 0。
+- 今回は設定宣言と版のみを変更したため、Applet固有のOS実操作・実サービス・全回帰は対象外。実壁紙・ロック・消灯・認証は操作していない。未変更Appletの発行、commit/push/Release/実利用先deployなし。GUI資料は本体側の隔離profileへ保持。
+
 ## 2026-10-14: 非表示受信トレイ復帰のコミット前確認（0.10.0）
 
 - 利用者の動作確認済み申告を受け、対象7ファイルをレビューしてstage。設定・manifest・共通ホスト契約・監視・認証の範囲と先行検証からの入力不変を確認。未解決の指摘なし。

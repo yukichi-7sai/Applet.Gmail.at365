@@ -3,55 +3,246 @@
   "id": "at365.gmail",
   "name": "Applet.Gmail.at365",
   "displayName": "Gmail",
-  "version": "0.10.0",
-  "minimumHostVersion": "0.35.2",
+  "version": "0.10.1",
+  "minimumHostVersion": "0.36.8",
   "runtime": "node",
   "entry": "index.js",
   "description": "アカウントごとのGmail Web画面と新着の検知",
-  "capabilities": ["pages", "web-accounts", "ui", "settings", "notifications", "tray-attention", "audio", "file-dialog"],
+  "capabilities": [
+    "pages",
+    "web-accounts",
+    "ui",
+    "settings",
+    "notifications",
+    "tray-attention",
+    "audio",
+    "file-dialog"
+  ],
   "commands": [
-    { "id": "at365.gmail.back", "title": "戻る" },
-    { "id": "at365.gmail.forward", "title": "進む" },
-    { "id": "at365.gmail.reload", "title": "リロード" },
-    { "id": "at365.gmail.inbox", "title": "受信トレイへ" },
-    { "id": "at365.gmail.open", "title": "Gmailを開く", "activateOnExecute": true, "automation": true },
-    { "id": "at365.gmail.acknowledge", "title": "新着表示をクリア" },
-    { "id": "at365.gmail.nextAccount", "title": "次のアカウント" },
-    { "id": "at365.gmail.previousAccount", "title": "前のアカウント" }
+    {
+      "id": "at365.gmail.back",
+      "title": "戻る"
+    },
+    {
+      "id": "at365.gmail.forward",
+      "title": "進む"
+    },
+    {
+      "id": "at365.gmail.reload",
+      "title": "リロード"
+    },
+    {
+      "id": "at365.gmail.inbox",
+      "title": "受信トレイへ"
+    },
+    {
+      "id": "at365.gmail.open",
+      "title": "Gmailを開く",
+      "activateOnExecute": true,
+      "automation": true
+    },
+    {
+      "id": "at365.gmail.acknowledge",
+      "title": "新着表示をクリア"
+    },
+    {
+      "id": "at365.gmail.nextAccount",
+      "title": "次のアカウント"
+    },
+    {
+      "id": "at365.gmail.previousAccount",
+      "title": "前のアカウント"
+    }
   ],
   "defaultKeybindings": [
-    { "command": "at365.gmail.nextAccount", "key": "Ctrl+Tab", "enabled": true, "when": { "scope": "owner", "appletIds": [] } },
-    { "command": "at365.gmail.previousAccount", "key": "Ctrl+Shift+Tab", "enabled": true, "when": { "scope": "owner", "appletIds": [] } }
+    {
+      "command": "at365.gmail.nextAccount",
+      "key": "Ctrl+Tab",
+      "enabled": true,
+      "when": {
+        "scope": "owner",
+        "appletIds": []
+      }
+    },
+    {
+      "command": "at365.gmail.previousAccount",
+      "key": "Ctrl+Shift+Tab",
+      "enabled": true,
+      "when": {
+        "scope": "owner",
+        "appletIds": []
+      }
+    }
   ],
   "settings": [
-    { "key": "returnToInboxOnHide", "title": "非表示になったら受信トレイへ戻す", "type": "boolean", "default": false, "description": "アカウント切替・ページ切替・ウィンドウを閉じるなどで非表示になると受信トレイへ戻します。Gmail内のタブ切替やフォーカス移動では戻しません。" },
-    { "key": "unreadOnly", "automation": true, "generateCommands": ["on", "off", "toggle"], "title": "新着一覧を未読だけ表示", "type": "boolean", "default": false, "description": "新着一覧の「未読だけ」と連動し、再起動後も保持します。" },
-    { "key": "showToolbar", "automation": true, "generateCommands": ["on", "off", "toggle"], "title": "ツールバーを表示", "type": "boolean", "default": true, "description": "受信トレイ・新着一覧・設定のツールバーエリアを表示します。" },
-    { "key": "openExternalWithoutConfirmation", "title": "外部リンクを確認せずに開く", "type": "boolean", "default": false, "description": "外部アプリでリンクを開く前の確認を省略します。" },
-    { "key": "monitoring", "automation": true, "generateCommands": ["on", "off", "toggle"], "title": "新着の監視", "type": "boolean", "default": true },
-    { "key": "notifications", "automation": true, "generateCommands": ["on", "off", "toggle"], "title": "新着通知", "type": "boolean", "default": true },
-    { "key": "notificationDetails", "title": "通知に送信元と件名を表示", "type": "boolean", "default": false },
-    { "key": "historyLimit", "automation": true, "title": "新着履歴の保存件数", "type": "select", "default": "50", "options": [
-      { "label": "10 件 / アカウント", "value": "10" },
-      { "label": "20 件 / アカウント", "value": "20" },
-      { "label": "30 件 / アカウント", "value": "30" },
-      { "label": "40 件 / アカウント", "value": "40" },
-      { "label": "50 件 / アカウント", "value": "50" }
-    ], "description": "アカウントごとに10〜50件を保持します。減らすと古い履歴を消去します。未読件数の集計には影響しません。" }
+    {
+      "key": "returnToInboxOnHide",
+      "title": "非表示になったら受信トレイへ戻す",
+      "type": "boolean",
+      "default": false,
+      "description": "アカウント切替・ページ切替・ウィンドウを閉じるなどで非表示になると受信トレイへ戻します。Gmail内のタブ切替やフォーカス移動では戻しません。"
+    },
+    {
+      "key": "unreadOnly",
+      "automation": true,
+      "generateCommands": [
+        "on",
+        "off",
+        "toggle"
+      ],
+      "title": "新着一覧を未読だけ表示",
+      "type": "boolean",
+      "default": false,
+      "description": "新着一覧の「未読だけ」と連動し、再起動後も保持します。"
+    },
+    {
+      "key": "showToolbar",
+      "automation": true,
+      "generateCommands": [
+        "on",
+        "off",
+        "toggle"
+      ],
+      "title": "ツールバーを表示",
+      "type": "boolean",
+      "default": true,
+      "description": "受信トレイ・新着一覧・設定のツールバーエリアを表示します。"
+    },
+    {
+      "key": "openExternalWithoutConfirmation",
+      "title": "外部リンクを確認せずに開く",
+      "type": "boolean",
+      "default": false,
+      "description": "外部アプリでリンクを開く前の確認を省略します。"
+    },
+    {
+      "key": "monitoring",
+      "automation": true,
+      "generateCommands": [
+        "on",
+        "off",
+        "toggle"
+      ],
+      "title": "新着の監視",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "key": "notifications",
+      "automation": true,
+      "generateCommands": [
+        "on",
+        "off",
+        "toggle"
+      ],
+      "title": "新着通知",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "key": "notificationDetails",
+      "title": "通知に送信元と件名を表示",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "key": "historyLimit",
+      "automation": true,
+      "title": "新着履歴の保存件数",
+      "type": "select",
+      "default": "50",
+      "options": [
+        {
+          "label": "10 件 / アカウント",
+          "value": "10"
+        },
+        {
+          "label": "20 件 / アカウント",
+          "value": "20"
+        },
+        {
+          "label": "30 件 / アカウント",
+          "value": "30"
+        },
+        {
+          "label": "40 件 / アカウント",
+          "value": "40"
+        },
+        {
+          "label": "50 件 / アカウント",
+          "value": "50"
+        }
+      ],
+      "description": "アカウントごとに10〜50件を保持します。減らすと古い履歴を消去します。未読件数の集計には影響しません。"
+    }
   ],
   "pages": [
-    { "id": "gmail", "title": "Gmail", "icon": "mail", "source": "web-accounts", "openCommand": "at365.gmail.open", "defaultDisplay": "page" }
+    {
+      "id": "gmail",
+      "title": "Gmail",
+      "icon": "mail",
+      "source": "web-accounts",
+      "openCommand": "at365.gmail.open",
+      "defaultDisplay": "page"
+    }
   ],
   "webAccounts": {
     "returnToStartOnHideSetting": "returnToInboxOnHide",
     "externalLinkSetting": "openExternalWithoutConfirmation",
-    "avatarOrigins": ["https://lh3.googleusercontent.com", "https://lh4.googleusercontent.com", "https://lh5.googleusercontent.com", "https://lh6.googleusercontent.com", "https://lh3.google.com", "https://lh4.google.com", "https://lh5.google.com", "https://lh6.google.com"],
+    "avatarOrigins": [
+      "https://lh3.googleusercontent.com",
+      "https://lh4.googleusercontent.com",
+      "https://lh5.googleusercontent.com",
+      "https://lh6.googleusercontent.com",
+      "https://lh3.google.com",
+      "https://lh4.google.com",
+      "https://lh5.google.com",
+      "https://lh6.google.com"
+    ],
     "keepActive": true,
     "url": "https://mail.google.com/mail/u/0/#inbox",
-    "origins": ["https://mail.google.com", "https://accounts.google.com", "https://accounts.google.co.jp", "https://accounts.youtube.com", "https://myaccount.google.com", "https://workspace.google.com"],
+    "origins": [
+      "https://mail.google.com",
+      "https://accounts.google.com",
+      "https://accounts.google.co.jp",
+      "https://accounts.youtube.com",
+      "https://myaccount.google.com",
+      "https://workspace.google.com"
+    ],
     "observeOrigin": "https://mail.google.com",
     "ui": "web/index.html",
     "observer": "web/observer.js",
     "itemOpener": "web/open-item.js"
-  }
+  },
+  "settingSections": [
+    {
+      "id": "inbox",
+      "title": "受信トレイと表示",
+      "description": "メールを開くときや一覧の表示を整えます。",
+      "settings": [
+        "returnToInboxOnHide",
+        "unreadOnly",
+        "showToolbar"
+      ]
+    },
+    {
+      "id": "notifications",
+      "title": "新着の監視と通知",
+      "description": "新着メールの監視と、通知に含める内容を選びます。",
+      "settings": [
+        "monitoring",
+        "notifications",
+        "notificationDetails",
+        "historyLimit"
+      ]
+    },
+    {
+      "id": "links",
+      "title": "外部リンク",
+      "description": "Gmailから外部のサイトを開くときの動作です。",
+      "settings": [
+        "openExternalWithoutConfirmation"
+      ]
+    }
+  ]
 }

@@ -137,3 +137,7 @@ extension.jsonでmonitoring/notifications/showToolbar/unreadOnly/historyLimitに
 returnToInboxOnHideは既定falseの同期boolean設定です。manifestのreturnToStartOnHideSettingでホストの表示寿命へ結びつけ、settings/onChanged経路とGmailの設定タブを共用します。Applet側で可視性ポーリングやページの定期reloadを追加しません。契約は[WebアカウントAPI](../AppDock.at365/docs/web-accounts.md#非表示時の開始ページへの復帰)を参照してください。最低本体版は0.35.2です。
 
 ローカルNodeでscripts/test-auto-return.cjs [発行版EXE]を実行すると、隔離profile・オフラインHTTPS fixture・実WebContentsでON/OFF保存、UI/コマンドの枠切替、本体の別ページ、表示先変更、別Windowの×、認証画面保護、再起動保持を確認します。fixtureの入力保持と通信回数も照合します。実Googleの下書き挙動・実受信は別途操作確認が必要です。
+
+## 設定画面の構成
+
+`extension.json`の`settingSections`で用途別のカードを宣言します。描画・余白・入力・検索・保存は[本体の共通テンプレート](../AppDock.at365/docs/extensions.md#共通の設定ページ)へ委譲し、Applet固有の設定フォームやCSSを複製しません。設定キー・既定値・実行処理を変えずに並び順を調整できます。最低本体版は0.36.8です。
