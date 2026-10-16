@@ -3,8 +3,8 @@
   "id": "at365.gmail",
   "name": "Applet.Gmail.at365",
   "displayName": "Gmail",
-  "version": "0.11.0",
-  "minimumHostVersion": "0.42.0",
+  "version": "0.11.1",
+  "minimumHostVersion": "0.51.0",
   "runtime": "node",
   "entry": "index.js",
   "description": "アカウントごとのGmail Web画面と新着の検知",
@@ -15,6 +15,7 @@
     "settings",
     "notifications",
     "tray-attention",
+    "ribbon-badges",
     "audio",
     "file-dialog"
   ],

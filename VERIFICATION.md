@@ -1,5 +1,13 @@
 # 検証記録
 
+## 2026-10-16: リボンの新着件数バッジ（0.11.1）
+
+- 監視中アカウントの既存pending集合を合算し、共通`context.ribbon.setBadge`へGmailページの絶対件数を送る。0件は非表示、クリア/既読/監視OFF/削除は追随する。送信失敗で監視・通知・トレイ処理を停止せず、次の通常tickで最新値を送る。監視処理中のクリアも直ちに反映する。
+- 設定/保存ファイルの追加や削除なしのためパッチ更新0.11.1。`ribbon-badges` capabilityを宣言し、最低AppDock版は0.51.0。実受信と同じpending計算を利用し、本体へのGmail専用処理追加なし。[共通API](../AppDock.at365/docs/extensions.md#リボンバッジ)が正本。
+- 発行前[レビュー](../AppDock.at365/.artifacts/ribbon-implementation-20261016/review.md)で所有対象・同値抑止・直列化・失敗後再送・停止を確認。型検査/renderer buildと標準**25/25、fail/skip 0**が成功。追加3件で複数アカウント・クリア/既読/停止・削除・失敗後の最新値・監視中クリアを確認した。本体の510件とNode/.NETの固定EXE GUIも成功。実Google受信は未確認。
+- `publish.bat -Test`終了0。発行先`A:\40.ARTIFACT\Applet.Gmail.at365`のmanifest/feedは0.11.1、最低ホスト0.51.0で一致。update.zipは**90,938 bytes / SHA256 924bd4097c586493a01cd2aad287390400279f86502365073af81e5c929de30f**。ZIP全8ファイルと発行フォルダーのhash一致を確認。
+- [検証一覧](../AppDock.at365/.artifacts/ribbon-implementation-20261016/validation.json)、[ZIP内容照合](../AppDock.at365/.artifacts/ribbon-implementation-20261016/gmail-archive-files.json)、[コミット証跡](.artifacts/commit-validation-ribbon-20261016/validation.json)を参照。開始HEADは`22269bfe70607c5ef97fa911b5aec726460f83d5`。試験後の製品入力不変を照合してコミット時に結果を再利用する。今回Gmail側のGUI生成物追加なし。GitHub Release・実利用先deployは行っていない。
+
 ## 2026-10-15: 共通通知・ビープ廃止のコミット確認
 
 - main上の今回10ファイルを再レビューし、通知発行/終了・既存OFF設定・安全な履歴・WAV未選択の無音・共通APIと設計の整合に未解決指摘なし。実装時の標準22/22、ビルド/発行、固定AppDock0.42.0の音声/通知専用GUIの成功記録を、入力/ログ/配布物hashと照合して再利用した。

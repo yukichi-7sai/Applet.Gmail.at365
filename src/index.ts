@@ -5,9 +5,16 @@ interface Account {
   observation: unknown;
   error: string;
   monitoring?: boolean;
+  enabled?: boolean;
   sound?: { enabled: boolean; file: string };
 }
 interface Context {
+  ribbon: {
+    setBadge(
+      target: { pageId: string },
+      badge: { kind: "count"; count: number; label: string } | null,
+    ): Promise<unknown>;
+  };
   commands: {
     register(id: string, title: string, handler: () => unknown): void;
   };
@@ -63,6 +70,45 @@ interface Context {
 const ID = "at365.gmail";
 const monitors = new Map<string, InboxMonitor>();
 const notices = new Map<string, string>();
+let latestAccounts: Account[] = [];
+let badgeChain = Promise.resolve();
+let lastBadgeCount: number | undefined;
+let badgeFailure = false;
+function updateBadge() {
+  badgeChain = badgeChain.then(async () => {
+    if (!active) return;
+    const count = context.settings.get("monitoring", true)
+      ? latestAccounts
+          .filter(
+            (account) =>
+              account.enabled !== false && account.monitoring !== false,
+          )
+          .reduce(
+            (sum, account) => sum + (monitors.get(account.id)?.pending ?? 0),
+            0,
+          )
+      : 0;
+    if (count === lastBadgeCount) return;
+    try {
+      await context.ribbon.setBadge(
+        { pageId: "gmail" },
+        count ? { kind: "count", count, label: "未読の新着スレッド" } : null,
+      );
+      lastBadgeCount = count;
+      badgeFailure = false;
+    } catch {
+      if (!badgeFailure) {
+        badgeFailure = true;
+        await context.log
+          .error(
+            "Gmailのリボンバッジを更新できませんでした。次の定期更新で再確認します。",
+          )
+          .catch(() => {});
+      }
+    }
+  });
+  return badgeChain;
+}
 async function endNotice(accountId: string, status: "resolved" | "withdrawn") {
   const id = notices.get(accountId);
   if (!id) return;
@@ -105,6 +151,7 @@ async function tick() {
   try {
     const data = await context.webAccounts.read();
     if (!active) return;
+    latestAccounts = data.accounts;
     for (const id of monitors.keys())
       if (!data.accounts.some((a) => a.id === id)) {
         monitors.delete(id);
@@ -198,6 +245,7 @@ async function tick() {
       );
     }
     if (!active) return;
+    await updateBadge();
     await context.tray.attention(
       [...monitors.values()].some((m) => m.attention),
     );
@@ -214,6 +262,9 @@ async function tick() {
 export async function activate(c: Context) {
   context = c;
   active = true;
+  latestAccounts = [];
+  lastBadgeCount = undefined;
+  badgeFailure = false;
   c.commands.register(ID + ".open", "Gmailを開く", () => c.webAccounts.open());
   for (const [action, title] of [
     ["back", "戻る"],
@@ -232,6 +283,7 @@ export async function activate(c: Context) {
   );
   c.commands.register(ID + ".acknowledge", "新着表示をクリア", async () => {
     for (const monitor of monitors.values()) monitor.acknowledge();
+    await updateBadge();
     for (const id of [...notices.keys()]) await endNotice(id, "resolved");
     await tick();
   });
@@ -247,6 +299,7 @@ export async function deactivate() {
   active = false;
   cancel?.();
   monitors.clear();
+  latestAccounts = [];
   // The host withdraws this Applet generation's notifications on stop.
   notices.clear();
 }
