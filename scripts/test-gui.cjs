@@ -1,4 +1,9 @@
-const { getPublishDirectory } = require('../../AppDock.at365/scripts/publish-paths.cjs');
+const {
+  launchTestHost,
+} = require("../../AppDock.at365/scripts/electron-test-launcher.cjs");
+const {
+  getPublishDirectory,
+} = require("../../AppDock.at365/scripts/publish-paths.cjs");
 const fs = require("node:fs"),
   path = require("node:path"),
   assert = require("node:assert/strict");
@@ -56,15 +61,28 @@ async function remote(id, action) {
   );
 }
 async function launch(startupUnread = false) {
-  app = await electron.launch({
+  app = await launchTestHost({
+    portable: !!process.argv[2],
     executablePath: executable,
     args: process.argv[2]
       ? ["--test-profile=" + profile]
       : [host, "--test-profile=" + profile],
     env,
   });
-  dock = await app.firstWindow();
+  app.context().setDefaultTimeout(20000);
+  await until(() => {
+    dock = app
+      .context()
+      .pages()
+      .find((p) => p.url().startsWith("appdock://host/"));
+    return !!dock;
+  }, "host window");
   await dock.waitForFunction(() => !!window.dock);
+  await until(
+    async () =>
+      (await dock.evaluate(() => window.dock.snapshot())).startupReady,
+    "host ready",
+  );
   await app.evaluate(({ app }, startupUnread) => {
     const html =
       '<!doctype html><html><body style="font:18px sans-serif;background:#fff;color:#222"><h1>Gmail offline fixture</h1><main role="main"><table><tbody>' +
@@ -105,6 +123,8 @@ async function launch(startupUnread = false) {
     return !!ui;
   }, "local Gmail UI window");
   await ui.waitForFunction(() => !!window.webAccounts);
+  if (!(await snapshot()).accounts.length)
+    await ui.evaluate(() => window.webAccounts.add());
   await until(
     async () =>
       (await snapshot()).accounts.every((a) =>
@@ -489,7 +509,11 @@ async function launch(startupUnread = false) {
             .fromPath(directory)
             .cookies.get({ name: "fixture-login" })
         ).length,
-      path.join(profile, "data/web-accounts/at365.gmail/sessions", first),
+      path.join(
+        profile,
+        "data/web-account-groups/at365.google/sessions",
+        first,
+      ),
     );
     assert.equal(deleted, 0);
     await dock.evaluate(() =>

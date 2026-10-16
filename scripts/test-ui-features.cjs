@@ -158,7 +158,8 @@ async function launch() {
   } else {
     app = await electron.launch({executablePath:executable,args:[host,'--test-profile='+profile],env});
   }
-  dock = await app.firstWindow();
+  app.context().setDefaultTimeout(20000);
+  await until(() => { dock = app.context().pages().find(p => p.url().startsWith("appdock://host/")); return !!dock; }, "host window");
   await dock.waitForFunction(() => !!window.dock);
   await app.evaluate(
     ({ app, dialog }, { soundFile, accounts }) => {
@@ -297,15 +298,13 @@ async function audioAndNotifications() {
   const enable = async (value) =>
     dock.evaluate(async (value) => {
       const s = await window.dock.snapshot();
-      s.settings.value.host.notifications = true;
-      s.settings.value.extensions["at365.gmail"].settings.notifications = true;
+      s.settings.value.extensions["at365.gmail"].settings.notifications = value;
       s.settings.value.notificationPreferences = {
         overrides: [
           {
             ownerKind: "applet",
             ownerId: "at365.gmail",
             typeId: "new-mail",
-            enabled: value,
             targets: [],
             speak: false,
           },
@@ -347,18 +346,15 @@ async function audioAndNotifications() {
   await enable(false);
   await arrival("typed-two");
   await until(
-    () => app.evaluate(() => fixtureTyped.length === 2),
-    "suppressed Gmail notice",
+    async () => (await snapshot()).accounts[0].data.pending === 1,
+    "Gmail observes arrival while notification publication is disabled",
   );
-  assert.equal(
-    (await app.evaluate(() => fixtureTyped[1])).result.status,
-    "suppressed",
-  );
+  assert.equal(await app.evaluate(() => fixtureTyped.length), 1);
   await enable(true);
   await new Promise((r) => setTimeout(r, 2500));
-  assert.equal(await app.evaluate(() => fixtureTyped.length), 2);
+  assert.equal(await app.evaluate(() => fixtureTyped.length), 1);
   checks.push(
-    "real Gmail Node publishes new-mail through common policy, safe history and silent Windows delivery; acknowledge ends; disabled kind suppresses without replay",
+    "real Gmail Node publishes new-mail through common policy, safe history and silent Windows delivery; acknowledge ends; Gmail notification setting stops publication without replay",
   );
   await close();
   app = undefined;
@@ -897,12 +893,11 @@ async function audioAndNotifications() {
     assert.equal(saved.maximized, true);
     const legacyFile = path.join(profile, "legacy.wav");
     fs.writeFileSync(legacyFile, wave);
-    const savedAccounts = JSON.parse(
-      fs.readFileSync(path.join(webRoot, "accounts.json"), "utf8"),
-    );
-    savedAccounts.accounts[1].sound = { enabled: true, file: legacyFile };
+    const groupStateFile = path.join(profile, "data/web-account-groups/at365.google/state.json");
+    const savedAccounts = JSON.parse(fs.readFileSync(groupStateFile, "utf8"));
+    savedAccounts.members["at365.gmail"].preferences.find(a => a.id === accounts[1].id).sound = { enabled: true, file: legacyFile };
     fs.writeFileSync(
-      path.join(webRoot, "accounts.json"),
+      groupStateFile,
       JSON.stringify(savedAccounts),
     );
     // Restart reuses only the fixture profile; accounts and sound must survive.

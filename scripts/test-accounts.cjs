@@ -1,4 +1,9 @@
-const { getPublishDirectory } = require('../../AppDock.at365/scripts/publish-paths.cjs');
+const {
+  launchTestHost,
+} = require("../../AppDock.at365/scripts/electron-test-launcher.cjs");
+const {
+  getPublishDirectory,
+} = require("../../AppDock.at365/scripts/publish-paths.cjs");
 // Offline account-management UI regression. No real login or email operations.
 const fs = require("node:fs"),
   path = require("node:path"),
@@ -67,7 +72,8 @@ async function launch() {
   );
   saved.extensions["at365.gmail"].enabled = false;
   fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(saved));
-  app = await electron.launch({
+  app = await launchTestHost({
+    portable: !!process.argv[2],
     executablePath: process.argv[2]
       ? path.resolve(process.argv[2])
       : hostRequire("electron"),
@@ -76,8 +82,20 @@ async function launch() {
       : [host, "--test-profile=" + profile],
     env,
   });
-  dock = await app.firstWindow();
+  app.context().setDefaultTimeout(20000);
+  await until(() => {
+    dock = app
+      .context()
+      .pages()
+      .find((p) => p.url().startsWith("appdock://host/"));
+    return !!dock;
+  }, "host window");
   await dock.waitForFunction(() => !!window.dock);
+  await until(
+    async () =>
+      (await dock.evaluate(() => window.dock.snapshot())).startupReady,
+    "host ready",
+  );
   await app.evaluate(({ app, nativeImage, net }, accounts) => {
     globalThis.accountFixtureReads = 0;
     // Electron's custom protocol Request omits Cookie headers. Record the
@@ -240,6 +258,7 @@ async function remote(id, code) {
       showToolbar: true,
       openExternalWithoutConfirmation: false,
       unreadOnly: false,
+      returnToInboxOnHide: false,
       historyLimit: "50",
     });
     assert.equal(
@@ -549,13 +568,30 @@ async function remote(id, code) {
     await ui.screenshot({ path: path.join(profile, "accounts-light.png") });
     await close();
     const saved = JSON.parse(
-      fs.readFileSync(path.join(webRoot, "accounts.json"), "utf8"),
+      fs.readFileSync(
+        path.join(
+          profile,
+          "data/web-account-groups/at365.google/accounts.json",
+        ),
+        "utf8",
+      ),
     );
     assert.deepEqual(
       saved.accounts.map((a) => a.id),
       [accounts[1].id, accounts[0].id],
     );
-    assert.equal(saved.accounts[1].monitoring, false);
+    const memberState = JSON.parse(
+      fs.readFileSync(
+        path.join(profile, "data/web-account-groups/at365.google/state.json"),
+        "utf8",
+      ),
+    );
+    assert.equal(
+      memberState.members["at365.gmail"].preferences.find(
+        (a) => a.id === accounts[0].id,
+      ).monitoring,
+      false,
+    );
     await launch();
     const restored = await snapshot();
     assert.deepEqual(
@@ -567,6 +603,7 @@ async function remote(id, code) {
         showToolbar: true,
         openExternalWithoutConfirmation: false,
         unreadOnly: false,
+        returnToInboxOnHide: false,
         historyLimit: "20",
       },
       "global preferences persist across restart",

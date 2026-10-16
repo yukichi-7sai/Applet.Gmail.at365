@@ -1,5 +1,22 @@
 # 検証記録
 
+## 2026-10-17: Googleアカウントグループ移行のコミット確認（0.12.0）
+
+- 今回の11ファイルを本体側と再レビューし、共有範囲の宣言/説明、最低本体0.56.0、既存メール処理の維持、移行の検証・文書に未解決指摘なし。製品修正・版更新・再発行なし。
+- 実装時の入力/ログ/配布物hashを照合して、型検査・ビルド・標準**25/25**、固定EXEでのアカウント14群/監視16群/音通知2群と通常Electron背景監視10群を再利用。本体は35件再利用と未実行537件の追加で標準**572/572、fail/skip 0**。共有グループ・同期・smokeも同じ固定EXEの検証結果を再利用した。
+- [本体の再利用判定](../AppDock.at365/.artifacts/commit-validation-account-groups-20261017/reuse.json)と同所の`remaining-regression.json`・`stage.json`・`commit.json`・`push.json`を正本とし、当repoの[コミット照合](.artifacts/commit-validation-account-groups-20261017/validation.json)から参照する。ZIPと発行物の内容は不変。依頼に従いコミット・通常pushの対象とし、Release・実利用先deployは行わない。
+
+## 2026-10-17: Googleアカウントグループへ移行（0.12.0）
+
+- main `5b29dc8`から実装。`webAccounts.accountGroup`に`at365.google`を宣言し、最低本体を0.56.0へ更新。一覧・名前・順番と同じPCのログインを共有し、選択・監視・通知音はGmail専用とする説明をアカウント設定へ追加。共有削除/ログアウトの影響も明示した。メール観測・通知発行の本番処理は変更なし。[設計](../AppDock.at365/docs/web-account-groups-design.md)を正本とする。
+- UI/Nodeの型検査・ビルド・標準回帰**25/25、fail/skip 0**、publish.batは終了0。本体の関連35件と共通グループ7群も成功。[主証跡](../AppDock.at365/.artifacts/account-groups-20261017/validation.json)に両repoの入力と完全ログ・発行物hashを記録。初回回帰は並行したホストbuildで参照outが消失したため、build完了後に再実行して全件成功を確認した。
+- 固定AppDock0.56.0と発行Gmailで[アカウント14群](.artifacts/accounts-1792182981256/result.json)、[監視/初回追加/削除16群](.artifacts/gui-1792183066676/result.json)、[音/共通通知2群](.artifacts/ui-features-1792183183986/result.json)成功。旧session・名前・順序・選択・監視の移行/再起動、アバター、上限、Cookie隔離/保持/消去、WAV登録・試聴・選択解除の無音・Gmail通知OFF時の発行停止/再送なしを確認。共有説明の表示を画像確認した。
+- テストは本体のNSIS用起動helperとホストURL選択・startupReady待ちを利用し、名簿/音設定の読取先を新形式へ変更。削除済みの共通通知`enabled`に依存していた期待をGmailの現在の`notifications`設定へ修正。旧全機能モードの更新画面DOMは今回対象外で、`--audio-only`成功とは区別する。
+- [本体の同期GUI](../AppDock.at365/.artifacts/settings-sync-ui-1792183369636/result.json)で、PCごとの旧Gmail取込後に共通名簿を受信し、通知音の選択をPC別に保持して再起動することを確認。実同期サービスではなく、2つの隔離配置へのファイル配達を模擬した。
+- [配布asarを使う通常Electronの背景監視10群](.artifacts/native-background-1792183465873/result.json)も終了0。Playwrightのfocus上書きなしで未選択2枠の初回描画・ページ自身の通信・既読/未読更新・再読込・認証時のactive解除と回収を確認。本体の最終固定EXE smokeも成功した。
+- `A:\40.ARTIFACT\Applet.Gmail.at365\update.zip`は**0.12.0 / 91,119 bytes / SHA256 `a3ee5bc90bb04aea9a60efba3fbe2ea2d604692cf0dd58f65dbaa930a16d50bb`**。manifest/package/feedの版・最低ホスト0.56.0と、ZIP全8ファイル/発行フォルダーのhashが一致。発行後の追加修正はテストと文書だけで、製品再発行は不要。
+- 実Google認証・実メール・実スピーカーは未確認。今回の成功/失敗GUI証跡と再利用資料を保持。Calendar本体、commit・push・Release・実利用先deployは実施していない。
+
 ## 2026-10-16: リボンの新着件数バッジ（0.11.1）
 
 - 監視中アカウントの既存pending集合を合算し、共通`context.ribbon.setBadge`へGmailページの絶対件数を送る。0件は非表示、クリア/既読/監視OFF/削除は追随する。送信失敗で監視・通知・トレイ処理を停止せず、次の通常tickで最新値を送る。監視処理中のクリアも直ちに反映する。

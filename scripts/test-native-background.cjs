@@ -52,7 +52,7 @@ app.whenReady().then(async()=>{
     manifest.webAccounts.keepActive=!before;
     const { getWebAccounts }=require(path.join(codeRoot,'out/main/main/core/web-accounts'));
     const { InboxMonitor }=require(path.join(${JSON.stringify(getPublishDirectory(root))},'Applet.Gmail.at365/monitor'));
-    c=getWebAccounts('at365.gmail','Native fixture',path.join(${JSON.stringify(getPublishDirectory(root))},'Applet.Gmail.at365'),${JSON.stringify(dataRoot)},manifest.webAccounts);
+    c=getWebAccounts('at365.gmail','Native fixture',path.join(${JSON.stringify(getPublishDirectory(root))},'Applet.Gmail.at365'),${JSON.stringify(dataRoot)},manifest.webAccounts,{sharedRoot:${JSON.stringify(dataRoot)},capabilities:[],shortcut:()=>false,failed:()=>{}});
     await c.start();
     const pages=()=>webContents.getAllWebContents().filter(w=>w.getURL().startsWith('https://mail.google.com'));
     await wait(()=>pages().length===2&&pages().every(w=>!w.isLoading()),'fixture load');

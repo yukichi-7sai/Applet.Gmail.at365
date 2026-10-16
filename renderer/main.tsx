@@ -766,6 +766,13 @@ function App() {
             ) : (
               <>
                 <section className="settings-card account-order">
+                  {snapshot?.group && (
+                    <p className="hint">
+                      {snapshot.group.title}の一覧・表示名・順番は、同じグループを使うAppletで共有します。ログイン状態は同じPC内で共用します。
+                      ログアウトや削除は、ほかの参加Appletにも影響します。
+                      選択中のアカウント・新着監視・通知音はGmail専用です。
+                    </p>
+                  )}
                   <h2>アカウントの順番</h2>
                   <p>
                     上下のボタンで並べ替えます。一覧と切替キーに同じ順番が反映されます。
@@ -876,7 +883,9 @@ function App() {
                     <div>
                       <h3>保存したアカウントを削除</h3>
                       <p>
-                        この枠のログイン状態とサイトデータを削除します。
+                        {snapshot?.group
+                          ? "共通一覧から削除し、このPCの共通ログイン状態とサイトデータを消去します。"
+                          : "この枠のログイン状態とサイトデータを削除します。"}
                         <br />
                         Googleアカウントとメールはそのまま残ります。
                       </p>

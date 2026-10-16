@@ -4,9 +4,11 @@ AppDockから、複数アカウントのGmail Web画面を開くAppletです。G
 
 Gmailでは「Gmailを開く」をCodex連携へ公開します。Appletを有効・稼働中にし、AppDockのCodex連携でコマンド実行を許可すると利用できます。
 
+Googleアカウントグループに対応したほかのAppletと、一覧・表示名・順番を共用できます。同じPCではログイン状態も共用するため、ログアウトや枠の削除はほかの参加Appletにも影響します。選択中のアカウント・監視・通知音はGmail専用です。既存の登録とログイン状態は初回起動時に引き継ぎます。名簿を別PCへ同期しても、そのPCでのログインは別途必要です。
+
 ## 動作環境と導入
 
-Windows x64、**AppDock 0.51.0以降**、Googleに接続できるインターネット環境が必要です。WebContentsViewはAppDock内蔵のElectronを使うため、別のブラウザーRuntimeやNode.jsのインストールは不要です。Gmail 0.9.1で追加したショートカット初期値の自動設定にはAppDock 0.25.2以降が必要です。
+Windows x64、**AppDock 0.56.0以降**、Googleに接続できるインターネット環境が必要です。WebContentsViewはAppDock内蔵のElectronを使うため、別のブラウザーRuntimeやNode.jsのインストールは不要です。
 
 AppDockを完全終了し、配布された`Applet.Gmail.at365`フォルダー全体をEXE隣の`extensions`へ置きます。`extension.json`、`index.js`、`monitor.js`、`web/`が必要です。更新時もフォルダー全体を置き換え、`data`と`settings.json`は保持してください。起動後、Applet一覧で「Gmail」を有効にします。
 
@@ -19,7 +21,7 @@ AppDockの「設定 → Gmail」で「Gmailの表示方法」を「AppDock本体
 ## 使い方
 
 1. AppDock左のリボンの「Gmail」を押すか、「Gmailを開く」を実行します。既定ではAppDock本体のページに表示します。パネル、コマンドパレット、ピン留め、ショートカットからも同じ画面を開けます。
-2. 表示されたGoogleの画面でログインします。パスワード入力・二段階認証は利用者自身が行います。
+2. 初回で一覧が空の場合は「アカウント設定」で「＋ アカウントを追加」を押します。表示されたGoogleの画面でログインします。パスワード入力・二段階認証は利用者自身が行います。
 3. 「アカウント設定」を開くと「＋ アカウントを追加」が表示され、独立したログイン領域を追加できます（最大10個）。左側でアカウントを切り替え、設定画面で表示名や順番を変更できます。
 4. ログイン済みのアカウントは、起動時に受信トレイ先頭ページを裏側で読み込み、監視を開始します。タブを一度ずつ開く必要はありません。起動後に初めて確認できた未読も、その時点の新着として取り込みます。監視OFFから再開した場合も未読を取り込み直します。
 
@@ -86,12 +88,13 @@ Gmail画面の「アカウント設定」の隣にある「設定」タブで「
 
 ## 保存先・現在の制約
 
-AppDock 0.51.0以上が必要です。通知は共通設定の「通知 → Gmail → 新着メール」で表示先・時間・読み上げを選べます。既存のGmail設定「新着通知」は発行のON/OFFとして保持します。読み上げは初期OFFです。Windows通知のクリックは共通の通知センターを開き、通知内の「Gmailを開く」でGmailへ移動できます。通知履歴には送信元・件名・アカウント名を含まない要約だけを保存します。
+AppDock 0.56.0以上が必要です。通知は共通設定の「通知 → Gmail → 新着メール」で表示先・時間・読み上げを選べます。既存のGmail設定「新着通知」は発行のON/OFFとして保持します。読み上げは初期OFFです。Windows通知のクリックは共通の通知センターを開き、通知内の「Gmailを開く」でGmailへ移動できます。通知履歴には送信元・件名・アカウント名を含まない要約だけを保存します。
 
 - 一般設定: AppDockのEXE隣の`settings.json`。
-- アカウント枠・順番・選択・枠ごとの監視/通知音割り当て: このPCの`%LOCALAPPDATA%/at365/AppDock/profiles/<配置ID>/web-accounts/at365.gmail/accounts.json`。枠自体もPC間で同期しません。
+- アカウント枠・表示名・順番: EXE隣の`data/web-account-groups/at365.google/accounts.json`。同じGoogleアカウントグループのAppletで共用し、dataフォルダーと一緒にPC間でも同期できます。
+- 選択中のアカウント・枠ごとの監視/通知音割り当て: このPCの`%LOCALAPPDATA%/at365/AppDock/profiles/<配置ID>/web-account-groups/at365.google/state.json`内にGmail専用で保存します。
 - 登録音声: EXE隣の`data/assets/applets/at365.gmail/sounds/<ファイル名>`。AppDockフォルダーと一緒に同期できます。音声の割り当てはPCごとです。
-- ログイン状態: 同じPC専用root内の`web-accounts/at365.gmail/sessions/<account-id>/`。各PCでログインしてください。旧.appdockからの自動移行は行いません。
+- ログイン状態: PC専用root内の`web-account-groups/at365.google/sessions/<account-id>/`。既存枠は従来の`web-accounts/at365.gmail/sessions/<account-id>/`を継続使用します。同じPCの同じグループで共用し、各PCでは個別にログインしてください。旧.appdockからの自動移行は行いません。
 - 画面の位置・サイズはPC専用root内の`web-accounts/at365.gmail/window-state.json`へ保存します。ログイン情報を含むPC専用rootは公開・他者への共有を避け、継続利用には保持してください。
 - Gmail API・OAuthクライアントJSONは使用しません。旧GmailCheckerのAPI用設定・トークンは自動移行しません。旧Webテストのログイン引き継ぎは開発用の明示操作だけです。
 - 新着履歴は起動中だけ、各アカウントの最大50件・約48KBまで保持します。終了・Applet停止・監視OFFで消去し、ファイルには保存しません。件数は確認できた未読の新着スレッド数で、メールボックス全体の未読総数や、スレッド内の個々の未読メッセージ数ではありません。履歴の50件上限とは別に集計します。件名・送信元を読み取れない場合も新着検知は継続します。
