@@ -1,3 +1,4 @@
+const { getPublishDirectory } = require('../../AppDock.at365/scripts/publish-paths.cjs');
 const fs = require("node:fs"),
   path = require("node:path");
 const root = path.resolve(__dirname, "..");
@@ -6,7 +7,7 @@ const profile = path.join(root, ".artifacts", "gmail-dev");
 const webRoot = path.join(profile, "data/web-accounts/at365.gmail");
 fs.mkdirSync(profile, { recursive: true });
 fs.cpSync(
-  path.join(root, "publish/Applet.Gmail.at365"),
+  path.join(getPublishDirectory(root), "Applet.Gmail.at365"),
   path.join(profile, "extensions/Applet.Gmail.at365"),
   { recursive: true },
 );

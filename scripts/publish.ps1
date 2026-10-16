@@ -1,6 +1,8 @@
 ﻿param([switch]$Test)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
+. ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\AppDock.at365\scripts\publish-paths.ps1')))
+$taskArtifact = Get-PublishDirectory $root
 $hostRoot = Join-Path (Split-Path $root -Parent) 'AppDock.at365'
 $toolchain = Get-Content (Join-Path $hostRoot 'toolchain.json') -Raw | ConvertFrom-Json
 $node = Join-Path $hostRoot ".tools\node\$($toolchain.node)\node.exe"
@@ -10,4 +12,6 @@ if ($Test) { $arguments += '--test' }
 & $node @arguments
 if ($LASTEXITCODE -ne 0) { throw "Build failed: $LASTEXITCODE" }
 
-& (Join-Path $hostRoot 'scripts\pack-applet-update.ps1') -SourceDirectory (Join-Path $root 'publish\Applet.Gmail.at365') -OutputDirectory (Join-Path $root 'publish')
+& (Join-Path $hostRoot 'scripts\pack-applet-update.ps1') -SourceDirectory (Join-Path $taskArtifact 'Applet.Gmail.at365') -OutputDirectory $taskArtifact
+
+Install-PublishedDeployment $root $taskArtifact

@@ -8,7 +8,7 @@
 - Gmailの専用枠・ログイン・枠ごとの通知音割り当てはPC専用。WebApplet枠と共用しない。登録音声だけはAppDockフォルダー内で共有する。
 - 通知音はホストのsnapshot.registeredSoundsとsetSound/pickSound/testSoundを使う。ファイル名をIDにし、独自のID対応表を追加しない。同名別内容を自動上書き・自動改名しない。枠の削除で共有素材を削除しない。
 - Nodeのaudio.playへ渡す通知音のファイル名はホストが自身のAppletの登録素材へ解決する。リモートGmailへNode/ホストAPIを公開しない。
-- build/test/publishはAppDockのローカルNodeと既存publish.batを使う。実装完了時はGmailを版更新して自身のpublishへ発行する。commit/push/Release/deployは別の依頼に従う。
+- build/test/publishはAppDockのローカルNodeと既存publish.batを使う。実装完了時はGmailを版更新して自身の40.ARTIFACT配下へ発行する。commit/push/Release/deployは別の依頼に従う。
 - 音声UIの変更ではtests、scripts/test-ui-features.cjs、ホストのsettings-sync-ui-test.cjsを確認する。GUIは隔離profileで直列実行し、ビルド中のout再生成と重ねない。実Googleログイン・実メール・実2PC同期とオフラインfixtureを区別する。
 
 - 外部公開コマンドは自身のextension.jsonで宣言する。ホストへGmail専用の許可一覧を戻さない。契約は[共通操作API](../AppDock.at365/docs/automation.md#appletによる公開宣言)を参照する。

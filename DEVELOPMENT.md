@@ -1,5 +1,9 @@
 # 開発ガイド
 
+## 発行・配置ファイルの保存先
+
+標準発行先は `A:\40.ARTIFACT\Applet.Gmail.at365` です。`publish.bat`はソースrepo、`deploy.bat`は発行先から実行します。配置用ファイル・設定の保持とテンプレートの更新は[共通発行手順](../AppDock.at365/docs/publishing.md)を参照してください。
+
 実装時のテスト選択、コミット前の必要回帰、リリース前のコミット/プッシュ確認と検証証跡の再利用は、[本体・Applet共通手順](../AppDock.at365/docs/development-workflow.md)に従います。この文書の試験コマンドは、その段階に応じて実行します。
 
 利用者向けの案内は[README](README.md)、実行結果は[VERIFICATION](VERIFICATION.md)を参照してください。
@@ -16,10 +20,10 @@
 
 ```powershell
 .\publish.bat -Test
-.\deploy.bat "AppDock.at365.exeが存在する配置先"
+A:\40.ARTIFACT\Applet.Gmail.at365\deploy.bat "AppDock.at365.exeが存在する配置先"
 ```
 
-発行先は`publish/Applet.Gmail.at365/`です。deployは指定先の`extensions/Applet.Gmail.at365`へWeb資産を含めて再帰コピーし、全ファイルをSHA256照合します。引数を省略するとGit対象外の`deploy.local.txt`先頭行を使います。設定・ログイン領域は変更しません。Windows PowerShellのPS1はUTF-8 BOM、BATはCP932/CRLFで保存します。
+発行先は`A:/40.ARTIFACT/Applet.Gmail.at365/Applet.Gmail.at365/`です。deployは指定先の`extensions/Applet.Gmail.at365`へWeb資産を含めて再帰コピーし、全ファイルをSHA256照合します。引数を省略するとGit対象外の`deploy.local.txt`先頭行を使います。設定・ログイン領域は変更しません。Windows PowerShellのPS1はUTF-8 BOM、BATはCP932/CRLFで保存します。
 
 ## 開発起動と検証
 
@@ -38,9 +42,9 @@ Gmail開発profileはハードウェアアクセラレーションをオフに�
 ```powershell
 ..\AppDock.at365\.tools\node\24.21.0\node.exe scripts\test-gui.cjs
 ..\AppDock.at365\.tools\node\24.21.0\node.exe scripts\check-live.cjs
-..\AppDock.at365\.tools\node\24.21.0\node.exe scripts\test-gui.cjs ..\AppDock.at365\publish\win-unpacked\AppDock.at365.exe
+..\AppDock.at365\.tools\node\24.21.0\node.exe scripts\test-gui.cjs ..\..\40.ARTIFACT\AppDock.at365\win-unpacked\AppDock.at365.exe
 ..\AppDock.at365\.tools\node\24.21.0\node.exe scripts\test-portable.cjs
-..\AppDock.at365\.tools\node\24.21.0\node.exe scripts\test-auth-redirect.cjs ..\AppDock.at365\publish\win-unpacked\AppDock.at365.exe
+..\AppDock.at365\.tools\node\24.21.0\node.exe scripts\test-auth-redirect.cjs ..\..\40.ARTIFACT\AppDock.at365\win-unpacked\AppDock.at365.exe
 ```
 
 `test-gui.cjs`は新しい隔離profileとHTTPSのオフラインfixtureだけを使います。`check-live.cjs`は明示的に開発用Gmailへ接続し、既存ログインの再利用・実DOMの識別子対応を確認して終了します。メール本文・件名・Cookie値は診断出力しません。実メールの到着確認には、利用者自身が送った開発用メールでの操作確認を別途行います。
@@ -114,9 +118,9 @@ Google認証の許可先には`https://accounts.youtube.com`も含めます。[G
 
 ## 更新配布物の発行
 
-`publish.bat`は通常の発行先を生成した後、兄弟のAppDockリポジトリにある`scripts/pack-applet-update.ps1`で`publish/update.json`と`publish/update.zip`を自動生成します。共通パッカーのビルドに.NET 10 SDKが必要です。Gmail以外のAppletは、このパッケージ生成のためにNode.jsを導入する必要はありません。
+`publish.bat`は通常の発行先を生成した後、兄弟のAppDockリポジトリにある`scripts/pack-applet-update.ps1`で`A:/40.ARTIFACT/Applet.Gmail.at365/update.json`と`A:/40.ARTIFACT/Applet.Gmail.at365/update.zip`を自動生成します。共通パッカーのビルドに.NET 10 SDKが必要です。Gmail以外のAppletは、このパッケージ生成のためにNode.jsを導入する必要はありません。
 
-ZIP直下に`extension.json`と実行ファイル一式を置き、JSONにID・版・必要な本体版・ZIPのサイズとSHA256を記録します。`OutputDirectory`を指定できる発行スクリプトでも、指定先の配布内容を読み、更新用JSON/ZIPの出力先はこのリポジトリの`publish`です。通常配置用サブフォルダーへJSON/ZIPを混ぜず、`deploy.bat`の配置対象も増やしません。
+ZIP直下に`extension.json`と実行ファイル一式を置き、JSONにID・版・必要な本体版・ZIPのサイズとSHA256を記録します。`OutputDirectory`を指定できる発行スクリプトでも、指定先の配布内容を読み、更新用JSON/ZIPの出力先は`A:\40.ARTIFACT\Applet.Gmail.at365`です。通常配置用サブフォルダーへJSON/ZIPを混ぜず、`deploy.bat`の配置対象も増やしません。
 
 Web配布やGitHub Releaseには同じ発行で生成したJSONとZIPを一緒に置き、JSONを最後に公開してください。ソースコードの自動生成ZIPは使用しません。発行スクリプトから外部公開は行いません。[共通更新仕様](../AppDock.at365/docs/updates.md)と[配布先の確認手順](../AppDock.at365/docs/update-checklist.md)を参照してください。
 

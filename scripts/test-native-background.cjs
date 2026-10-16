@@ -1,3 +1,4 @@
+const { getPublishDirectory } = require('../../AppDock.at365/scripts/publish-paths.cjs');
 // No Playwright or test-tool focus overrides, real accounts, or external network.
 const fs = require("node:fs"),
   path = require("node:path");
@@ -9,7 +10,7 @@ const root = path.resolve(__dirname, ".."),
 const hostRequire = createRequire(path.join(host, "package.json"));
 const before = process.argv.includes("--before");
 const codeRoot = process.argv.includes("--packed-core")
-  ? path.join(host, "publish/win-unpacked/resources/app.asar")
+  ? path.join(getPublishDirectory(host), "win-unpacked/resources/app.asar")
   : host;
 const profile = path.join(root, ".artifacts", "native-background-" + Date.now());
 const ids = [randomUUID(), randomUUID()];
@@ -50,8 +51,8 @@ app.whenReady().then(async()=>{
     const manifest=JSON.parse(fs.readFileSync(path.join(root,'extension.json'),'utf8'));
     manifest.webAccounts.keepActive=!before;
     const { getWebAccounts }=require(path.join(codeRoot,'out/main/main/core/web-accounts'));
-    const { InboxMonitor }=require(path.join(root,'publish/Applet.Gmail.at365/monitor'));
-    c=getWebAccounts('at365.gmail','Native fixture',path.join(root,'publish/Applet.Gmail.at365'),${JSON.stringify(dataRoot)},manifest.webAccounts);
+    const { InboxMonitor }=require(path.join(${JSON.stringify(getPublishDirectory(root))},'Applet.Gmail.at365/monitor'));
+    c=getWebAccounts('at365.gmail','Native fixture',path.join(${JSON.stringify(getPublishDirectory(root))},'Applet.Gmail.at365'),${JSON.stringify(dataRoot)},manifest.webAccounts);
     await c.start();
     const pages=()=>webContents.getAllWebContents().filter(w=>w.getURL().startsWith('https://mail.google.com'));
     await wait(()=>pages().length===2&&pages().every(w=>!w.isLoading()),'fixture load');

@@ -1,3 +1,4 @@
+const { getPublishDirectory } = require('../../AppDock.at365/scripts/publish-paths.cjs');
 // Offline account-management UI regression. No real login or email operations.
 const fs = require("node:fs"),
   path = require("node:path"),
@@ -20,7 +21,7 @@ fs.writeFileSync(
   JSON.stringify({ version: 1, selected: accounts[0].id, accounts }),
 );
 fs.cpSync(
-  path.join(root, "publish/Applet.Gmail.at365"),
+  path.join(getPublishDirectory(root), "Applet.Gmail.at365"),
   path.join(profile, "extensions/Applet.Gmail.at365"),
   { recursive: true },
 );

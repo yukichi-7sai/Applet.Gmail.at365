@@ -1,3 +1,4 @@
+const { getPublishDirectory } = require('../../AppDock.at365/scripts/publish-paths.cjs');
 const fs = require("node:fs"),
   path = require("node:path"),
   assert = require("node:assert/strict");
@@ -32,7 +33,7 @@ settings.extensions["at365.gmail"] = {
 };
 fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(settings));
 fs.cpSync(
-  path.join(root, "publish/Applet.Gmail.at365"),
+  path.join(getPublishDirectory(root), "Applet.Gmail.at365"),
   path.join(profile, "extensions/Applet.Gmail.at365"),
   { recursive: true },
 );

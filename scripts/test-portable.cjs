@@ -1,3 +1,4 @@
+const { getPublishDirectory } = require('../../AppDock.at365/scripts/publish-paths.cjs');
 const fs = require("node:fs"),
   path = require("node:path"),
   net = require("node:net");
@@ -11,11 +12,11 @@ const { chromium } = hostRequire("playwright");
 const profile = path.join(root, ".artifacts", "portable-" + Date.now());
 fs.mkdirSync(profile, { recursive: true });
 fs.copyFileSync(
-  path.join(host, "publish/AppDock.at365.exe"),
+  path.join(getPublishDirectory(host), "AppDock.at365.exe"),
   path.join(profile, "AppDock.at365.exe"),
 );
 fs.cpSync(
-  path.join(root, "publish/Applet.Gmail.at365"),
+  path.join(getPublishDirectory(root), "Applet.Gmail.at365"),
   path.join(profile, "extensions/Applet.Gmail.at365"),
   { recursive: true },
 );

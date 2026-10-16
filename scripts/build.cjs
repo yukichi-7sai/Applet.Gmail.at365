@@ -1,3 +1,4 @@
+const { getPublishDirectory } = require('../../AppDock.at365/scripts/publish-paths.cjs');
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
@@ -25,7 +26,7 @@ if (process.argv.includes("--test"))
       .filter((f) => f.endsWith(".test.cjs"))
       .map((f) => path.join(root, "tests", f)),
   ]);
-const target = path.join(root, "publish", "Applet.Gmail.at365");
+const target = path.join(getPublishDirectory(root), "Applet.Gmail.at365");
 fs.mkdirSync(target, { recursive: true });
 for (const name of fs
   .readdirSync(path.join(root, "out"))
@@ -36,11 +37,11 @@ fs.copyFileSync(
   path.join(target, "extension.json"),
 );
 const webTarget = path.resolve(target, "web");
-const relativeWeb = path.relative(root, webTarget);
+const relativeWeb = path.relative(getPublishDirectory(root), webTarget);
 if (
   path.isAbsolute(relativeWeb) ||
   relativeWeb.startsWith("..") ||
-  relativeWeb !== path.join("publish", "Applet.Gmail.at365", "web")
+  relativeWeb !== path.join("Applet.Gmail.at365", "web")
 )
   throw Error("Unexpected generated Web output path");
 // This directory contains generated UI assets only, never settings or sessions.

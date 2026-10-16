@@ -14,8 +14,7 @@ if (-not $AppDockDirectory) {
 if (-not $AppDockDirectory -or -not (Test-Path -LiteralPath (Join-Path $AppDockDirectory 'AppDock.at365.exe'))) {
     throw 'AppDock.at365.exeが存在する配置先を引数またはdeploy.local.txtで指定してください。'
 }
-& (Join-Path $PSScriptRoot 'publish.ps1')
-$source = Join-Path $root 'publish\Applet.Gmail.at365'
+$source = Join-Path $root 'Applet.Gmail.at365'
 $target = Join-Path $AppDockDirectory 'extensions\Applet.Gmail.at365'
 New-Item -ItemType Directory -Path $target -Force | Out-Null
 Get-ChildItem -LiteralPath $source -Recurse -File | ForEach-Object {

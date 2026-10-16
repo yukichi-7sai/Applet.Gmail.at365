@@ -1,3 +1,4 @@
+const { getPublishDirectory } = require('../../AppDock.at365/scripts/publish-paths.cjs');
 const fs = require("node:fs"),
   path = require("node:path");
 const assert = require("node:assert/strict"),
@@ -9,7 +10,7 @@ const { _electron: electron } = hostRequire("playwright");
 const profile = path.join(root, ".artifacts", "auth-redirect-" + Date.now());
 fs.mkdirSync(profile, { recursive: true });
 fs.cpSync(
-  path.join(root, "publish/Applet.Gmail.at365"),
+  path.join(getPublishDirectory(root), "Applet.Gmail.at365"),
   path.join(profile, "extensions/Applet.Gmail.at365"),
   { recursive: true },
 );
