@@ -2,7 +2,7 @@
 
 ## アカウントグループ
 
-Gmail 0.12.0は最低AppDock 0.56.0で、manifestの`webAccounts.accountGroup`に`at365.google`を宣言します。共通名簿・PC内session・移行・削除・復旧の正本は[アカウントグループ設計](../AppDock.at365/docs/web-account-groups-design.md)と[WebアカウントAPI](../AppDock.at365/docs/web-accounts.md)。Gmailは共有範囲を設定画面で表示し、メール観測・監視・通知は従来のAPIを使います。最低ホスト版を満たさない環境へ個別配置しないでください。
+Gmail 0.12.1は最低AppDock 0.56.0で、manifestの`webAccounts.accountGroup`に`at365.google`を宣言します。共通名簿・PC内session・移行・削除・復旧の正本は[アカウントグループ設計](../AppDock.at365/docs/web-account-groups-design.md)と[WebアカウントAPI](../AppDock.at365/docs/web-accounts.md)。Gmailは共有範囲を設定画面で表示し、メール観測・監視・通知は従来のAPIを使います。最低ホスト版を満たさない環境へ個別配置しないでください。
 
 本体の`tests/web-account-groups.test.cjs`と`scripts/web-account-groups-ui-test.cjs`が共有・移行・停止・削除・復旧を検証します。Gmailのtest-accounts/test-gui/test-ui-features、ホストのsettings-sync-ui-testはグループの保存先に対応します。既存accounts.jsonは初回移行fixtureとして保持し、移行後は名簿とPC専用stateを別々に確認します。
 
