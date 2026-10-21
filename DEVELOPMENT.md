@@ -1,5 +1,7 @@
 # 開発ガイド
 
+機能の説明・操作方法・設定・既定値・動作環境は[機能・操作・設定](docs/usage.md)を参照してください。共通の文書構成は[ドキュメント方針](../AppDock.at365/docs/documentation.md)に従います。
+
 ## アカウントグループ
 
 Gmail 0.12.1は最低AppDock 0.56.0で、manifestの`webAccounts.accountGroup`に`at365.google`を宣言します。共通名簿・PC内session・移行・削除・復旧の正本は[アカウントグループ設計](../AppDock.at365/docs/web-account-groups-design.md)と[WebアカウントAPI](../AppDock.at365/docs/web-accounts.md)。Gmailは共有範囲を設定画面で表示し、メール観測・監視・通知は従来のAPIを使います。最低ホスト版を満たさない環境へ個別配置しないでください。
@@ -12,7 +14,7 @@ Gmail 0.12.1は最低AppDock 0.56.0で、manifestの`webAccounts.accountGroup`�
 
 実装時のテスト選択、コミット前の必要回帰、リリース前のコミット/プッシュ確認と検証証跡の再利用は、[本体・Applet共通手順](../AppDock.at365/docs/development-workflow.md)に従います。この文書の試験コマンドは、その段階に応じて実行します。
 
-利用者向けの案内は[README](README.md)、実行結果は[VERIFICATION](VERIFICATION.md)を参照してください。
+インストールとビルドの概要は[README](README.md)、実行結果は[VERIFICATION](VERIFICATION.md)を参照してください。
 
 ## 環境・発行
 
