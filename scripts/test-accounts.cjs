@@ -40,7 +40,7 @@ settings.extensions["at365.gmail"] = {
   enabled: false,
   settings: { notifications: false },
 };
-fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(settings));
+fs.writeFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), JSON.stringify(settings));
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 let app, dock, ui;
@@ -68,12 +68,13 @@ async function until(fn, message) {
 }
 async function launch() {
   const saved = JSON.parse(
-    fs.readFileSync(path.join(profile, "settings.json"), "utf8"),
+    fs.readFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), "utf8"),
   );
   saved.extensions["at365.gmail"].enabled = false;
-  fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(saved));
+  fs.writeFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), JSON.stringify(saved));
   app = await launchTestHost({
     portable: !!process.argv[2],
+    profileArtifacts: path.join(root, '.artifacts'),
     executablePath: process.argv[2]
       ? path.resolve(process.argv[2])
       : hostRequire("electron"),

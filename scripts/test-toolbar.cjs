@@ -29,7 +29,7 @@ settings.host.hardwareAcceleration = false;
 settings.globalShortcutCommands = [];
 settings.shortcuts["at365.gmail.reload"] = ["Ctrl+Alt+R"];
 settings.extensions["at365.gmail"] = { enabled: false, settings: {} };
-fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(settings));
+fs.writeFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), JSON.stringify(settings));
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 let app, dock, ui;
@@ -86,7 +86,7 @@ const remote = async (id, source) =>
 async function launch() {
   app = await electron.launch({
     executablePath: process.argv[2]
-      ? path.resolve(process.argv[2])
+      ? hostRequire('./scripts/copy-host.cjs').prepareTestHost(path.resolve(process.argv[2]), profile, path.join(root, '.artifacts'))
       : hostRequire("electron"),
     args: [...(process.argv[2] ? [] : [host]), `--test-profile=${profile}`],
     env,

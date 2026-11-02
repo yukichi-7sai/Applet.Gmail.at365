@@ -26,7 +26,7 @@ settings.extensions["at365.gmail"] = {
   settings: { notifications: false },
 };
 fs.mkdirSync(profile, { recursive: true });
-fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(settings));
+fs.writeFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), JSON.stringify(settings));
 fs.cpSync(
   path.join(getPublishDirectory(root), "Applet.Gmail.at365"),
   path.join(profile, "extensions/Applet.Gmail.at365"),
@@ -63,6 +63,7 @@ async function remote(id, action) {
 async function launch(startupUnread = false) {
   app = await launchTestHost({
     portable: !!process.argv[2],
+    profileArtifacts: path.join(root, '.artifacts'),
     executablePath: executable,
     args: process.argv[2]
       ? ["--test-profile=" + profile]
@@ -438,11 +439,11 @@ async function launch(startupUnread = false) {
     app = undefined;
     // Prevent a reload baseline from inheriting fixture attention.
     const saved = JSON.parse(
-      fs.readFileSync(path.join(profile, "settings.json")),
+      fs.readFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile)),
     );
     saved.extensions["at365.gmail"].enabled = false;
     fs.writeFileSync(
-      path.join(profile, "settings.json"),
+      require('../../AppDock.at365/scripts/test-settings.cjs').file(profile),
       JSON.stringify(saved),
     );
     await launch(true);

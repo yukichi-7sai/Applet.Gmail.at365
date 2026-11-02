@@ -34,7 +34,7 @@ settings.extensions["at365.gmail"] = {
   enabled: false,
   settings: { monitoring: false, notifications: false },
 };
-fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(settings));
+fs.writeFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), JSON.stringify(settings));
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 let app, dock, ui, ribbon;
@@ -104,7 +104,7 @@ async function launchHost() {
   const port = await freePort(),
     mainPort = await freePort();
   const child = spawn(
-    path.resolve(process.argv[2]),
+    hostRequire('./scripts/copy-host.cjs').prepareTestHost(path.resolve(process.argv[2]), profile, path.join(root, '.artifacts')),
     [
       "--test-profile=" + profile,
       "--test-local-state=" + path.join(profile, "data"),
@@ -167,10 +167,10 @@ async function launchHost() {
 
 async function launch() {
   const saved = JSON.parse(
-    fs.readFileSync(path.join(profile, "settings.json")),
+    fs.readFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile)),
   );
   saved.extensions["at365.gmail"].enabled = false;
-  fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(saved));
+  fs.writeFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), JSON.stringify(saved));
   app = await launchHost();
   assert.equal(
     await app.evaluate(({ app }) => app.getVersion()),
@@ -257,7 +257,7 @@ async function launch() {
       "Setting saves",
     );
     assert.equal(
-      JSON.parse(fs.readFileSync(path.join(profile, "settings.json")))
+      JSON.parse(fs.readFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile)))
         .extensions["at365.gmail"].settings.returnToInboxOnHide,
       true,
     );

@@ -49,7 +49,7 @@ Object.assign(
     })),
   ]),
 );
-fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(settings));
+fs.writeFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), JSON.stringify(settings));
 const wave = Buffer.alloc(44 + 1600);
 wave.write("RIFF");
 wave.writeUInt32LE(wave.length - 8, 4);
@@ -135,17 +135,17 @@ async function key(id, shift = false, keyCode = "Tab") {
 async function launch() {
   // Prevent startup activation before protocol fixtures are installed on restart.
   const current = JSON.parse(
-    fs.readFileSync(path.join(profile, "settings.json"), "utf8"),
+    fs.readFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), "utf8"),
   );
   current.extensions["at365.gmail"].enabled = false;
   fs.writeFileSync(
-    path.join(profile, "settings.json"),
+    require('../../AppDock.at365/scripts/test-settings.cjs').file(profile),
     JSON.stringify(current),
   );
   if (portable) {
-    const target = path.join(profile,'AppDock.at365.exe');
+    const target = hostRequire('./scripts/copy-host.cjs').prepareTestHost(executable, profile, path.join(root, '.artifacts'));
     const hash = p => require('node:crypto').createHash('sha256').update(fs.readFileSync(p)).digest('hex');
-    fs.copyFileSync(executable,target); assert.equal(hash(target),hash(executable));
+    assert.equal(hash(target),hash(executable));
     const port=await freePort(), mainPort=await freePort();
     portableProcess=require('node:child_process').spawn(target,['--test-profile='+profile,'--remote-debugging-port='+port,'--inspect='+mainPort],{cwd:host,env,windowsHide:true,stdio:'ignore'});
     await until(async()=>{try {portableBrowser=await hostRequire('playwright').chromium.connectOverCDP('http://127.0.0.1:'+port,{timeout:1000});return true;}catch{return false;}},'portable CDP');

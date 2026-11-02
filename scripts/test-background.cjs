@@ -31,7 +31,7 @@ settings.extensions["at365.gmail"] = {
   enabled: false,
   settings: { notifications: false },
 };
-fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(settings));
+fs.writeFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), JSON.stringify(settings));
 fs.cpSync(
   path.join(getPublishDirectory(root), "Applet.Gmail.at365"),
   path.join(profile, "extensions/Applet.Gmail.at365"),
@@ -68,7 +68,7 @@ const remoteStates = () =>
 (async () => {
   try {
     app = await electron.launch({
-      executablePath: process.argv[2] || hostRequire("electron"),
+      executablePath: process.argv[2] ? hostRequire('./scripts/copy-host.cjs').prepareTestHost(path.resolve(process.argv[2]), profile, path.join(root, '.artifacts')) : hostRequire("electron"),
       args: process.argv[2]
         ? ["--test-profile=" + profile]
         : [host, "--test-profile=" + profile],

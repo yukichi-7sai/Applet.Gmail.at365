@@ -11,9 +11,8 @@ const hostRequire = createRequire(path.join(host, "package.json"));
 const { chromium } = hostRequire("playwright");
 const profile = path.join(root, ".artifacts", "portable-" + Date.now());
 fs.mkdirSync(profile, { recursive: true });
-fs.copyFileSync(
-  path.join(getPublishDirectory(host), "AppDock.at365.exe"),
-  path.join(profile, "AppDock.at365.exe"),
+const executable = require('../../AppDock.at365/scripts/copy-host.cjs').prepareTestHost(
+  path.join(getPublishDirectory(host), 'win-unpacked', 'AppDock.at365.exe'), profile, path.join(root, '.artifacts'),
 );
 fs.cpSync(
   path.join(getPublishDirectory(root), "Applet.Gmail.at365"),
@@ -28,7 +27,7 @@ settings.extensions["at365.gmail"] = {
   enabled: false,
   settings: { notifications: false },
 };
-fs.writeFileSync(path.join(profile, "settings.json"), JSON.stringify(settings));
+fs.writeFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), JSON.stringify(settings));
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 let child,
@@ -48,7 +47,7 @@ async function until(fn, message) {
   const port = server.address().port;
   await new Promise((r) => server.close(r));
   child = spawn(
-    path.join(profile, "AppDock.at365.exe"),
+    executable,
     [
       "--test-profile=" + profile,
       "--test-local-state=" + path.join(profile, "local"),
@@ -219,7 +218,7 @@ async function until(fn, message) {
         "Gmail local toolbar ON",
       );
       const saved = JSON.parse(
-        fs.readFileSync(path.join(profile, "settings.json")),
+        fs.readFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile)),
       ).extensions["at365.gmail"].settings;
       assert.equal(saved.monitoring, true);
       assert.equal(saved.showToolbar, true);
