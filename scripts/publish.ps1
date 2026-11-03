@@ -13,5 +13,3 @@ if ($Test) { $arguments += '--test' }
 if ($LASTEXITCODE -ne 0) { throw "Build failed: $LASTEXITCODE" }
 
 & (Join-Path $hostRoot 'scripts\pack-applet-update.ps1') -SourceDirectory (Join-Path $taskArtifact 'Applet.Gmail.at365') -OutputDirectory $taskArtifact
-
-Install-PublishedDeployment $root $taskArtifact

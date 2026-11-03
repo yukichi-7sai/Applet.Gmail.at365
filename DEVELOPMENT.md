@@ -16,7 +16,7 @@ manifestの最低本体版は0.56.0。Node/React Appletで、Web画面と永続s
 .\publish.bat -Test
 ```
 
-発行先はA:/40.ARTIFACT/Applet.Gmail.at365。runtime資産とupdate.zip/update.jsonを生成する。配置時はAppDockを終了し、発行先のdeploy.batへ配置先を指定する。データ・認証・sessionと運用者所有の配置設定は保持する。[共通発行手順](../AppDock.at365/docs/publishing.md)を参照する。
+発行先はA:/40.ARTIFACT/Applet.Gmail.at365。runtime資産とupdate.zip/update.jsonを生成する。実利用先へ配置する場合はAppDockを完全終了し、発行したAppletフォルダー一式を`extensions/Applet.Gmail.at365`へコピーする。設定・データ・認証・sessionは保持する。[共通発行手順](../AppDock.at365/docs/publishing.md)を参照する。
 
 ## 構成
 
