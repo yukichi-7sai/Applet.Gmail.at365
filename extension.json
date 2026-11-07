@@ -5,16 +5,15 @@
   "displayName": "Gmail",
   "icon": "mail",
   "tagline": "メールの確認を、もっと身近に。",
-  "version": "0.12.2",
+  "version": "0.13.0",
   "updateRepository": "yukichi-7sai/Applet.Gmail.at365",
-  "minimumHostVersion": "0.56.0",
+  "minimumHostVersion": "0.180.0",
   "runtime": "node",
   "entry": "index.js",
   "description": "アカウントごとのGmail Web画面と新着の検知",
   "capabilities": [
     "pages",
     "web-accounts",
-    "ui",
     "settings",
     "notifications",
     "tray-attention",
@@ -89,11 +88,7 @@
     {
       "key": "unreadOnly",
       "automation": true,
-      "generateCommands": [
-        "on",
-        "off",
-        "toggle"
-      ],
+      "generateCommands": ["on", "off", "toggle"],
       "title": "新着一覧を未読だけ表示",
       "type": "boolean",
       "default": false,
@@ -102,11 +97,7 @@
     {
       "key": "showToolbar",
       "automation": true,
-      "generateCommands": [
-        "on",
-        "off",
-        "toggle"
-      ],
+      "generateCommands": ["on", "off", "toggle"],
       "title": "ツールバーを表示",
       "type": "boolean",
       "default": true,
@@ -122,11 +113,7 @@
     {
       "key": "monitoring",
       "automation": true,
-      "generateCommands": [
-        "on",
-        "off",
-        "toggle"
-      ],
+      "generateCommands": ["on", "off", "toggle"],
       "title": "新着の監視",
       "type": "boolean",
       "default": true
@@ -134,11 +121,7 @@
     {
       "key": "notifications",
       "automation": true,
-      "generateCommands": [
-        "on",
-        "off",
-        "toggle"
-      ],
+      "generateCommands": ["on", "off", "toggle"],
       "title": "新着通知",
       "type": "boolean",
       "default": true
@@ -224,11 +207,7 @@
       "id": "inbox",
       "title": "受信トレイと表示",
       "description": "メールを開くときや一覧の表示を整えます。",
-      "settings": [
-        "returnToInboxOnHide",
-        "unreadOnly",
-        "showToolbar"
-      ]
+      "settings": ["returnToInboxOnHide", "unreadOnly", "showToolbar"]
     },
     {
       "id": "notifications",
@@ -245,9 +224,7 @@
       "id": "links",
       "title": "外部リンク",
       "description": "Gmailから外部のサイトを開くときの動作です。",
-      "settings": [
-        "openExternalWithoutConfirmation"
-      ]
+      "settings": ["openExternalWithoutConfirmation"]
     }
   ],
   "notificationTypes": [
@@ -255,21 +232,10 @@
       "typeId": "new-mail",
       "title": "新着メール",
       "description": "Gmailで未読の新着を検知したときの通知です。",
-      "levels": [
-        "info"
-      ],
+      "levels": ["info"],
       "defaultLevel": "info",
-      "defaultEnabled": true,
-      "canDisable": true,
-      "disabledControlReason": "",
-      "allowedTargets": [
-        "banner",
-        "desktop",
-        "windows"
-      ],
-      "defaultTargets": [
-        "windows"
-      ],
+      "allowedTargets": ["banner", "desktop", "windows"],
+      "defaultTargets": ["windows"],
       "requiredTargets": [],
       "lifetimePolicy": "userDuration",
       "defaultDurationSeconds": 10,

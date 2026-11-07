@@ -26,7 +26,10 @@ settings.extensions["at365.gmail"] = {
   settings: { notifications: false },
 };
 fs.mkdirSync(profile, { recursive: true });
-fs.writeFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), JSON.stringify(settings));
+fs.writeFileSync(
+  require("../../AppDock.at365/scripts/test-settings.cjs").file(profile),
+  JSON.stringify(settings),
+);
 fs.cpSync(
   path.join(getPublishDirectory(root), "Applet.Gmail.at365"),
   path.join(profile, "extensions/Applet.Gmail.at365"),
@@ -63,7 +66,7 @@ async function remote(id, action) {
 async function launch(startupUnread = false) {
   app = await launchTestHost({
     portable: !!process.argv[2],
-    profileArtifacts: path.join(root, '.artifacts'),
+    profileArtifacts: path.join(root, ".artifacts"),
     executablePath: executable,
     args: process.argv[2]
       ? ["--test-profile=" + profile]
@@ -155,12 +158,7 @@ async function launch(startupUnread = false) {
       async () => (await snapshot()).accounts[0].attention,
       "DOM arrival detection",
     );
-    assert.equal(
-      (await dock.evaluate(() => window.dock.snapshot())).extensions.find(
-        (e) => e.id === "at365.gmail",
-      ).panel.facts[0].value,
-      "新着メールがあります",
-    );
+    assert.equal((await snapshot()).accounts[0].status, "新着メールがあります");
     await ui.screenshot({ path: path.join(profile, "gmail.png") });
     assert.equal((await snapshot()).accounts[0].data.pending, 1);
     assert.equal(
@@ -429,9 +427,7 @@ async function launch(startupUnread = false) {
     );
     await until(
       async () =>
-        (await dock.evaluate(() => window.dock.snapshot())).extensions.find(
-          (e) => e.id === "at365.gmail",
-        ).panel.facts[1].value === "新着メールがあります",
+        (await snapshot()).accounts[1].status === "新着メールがあります",
       "hidden-window arrival",
     );
     await app.evaluate(({ app }) => app.quit());
@@ -439,11 +435,13 @@ async function launch(startupUnread = false) {
     app = undefined;
     // Prevent a reload baseline from inheriting fixture attention.
     const saved = JSON.parse(
-      fs.readFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile)),
+      fs.readFileSync(
+        require("../../AppDock.at365/scripts/test-settings.cjs").file(profile),
+      ),
     );
     saved.extensions["at365.gmail"].enabled = false;
     fs.writeFileSync(
-      require('../../AppDock.at365/scripts/test-settings.cjs').file(profile),
+      require("../../AppDock.at365/scripts/test-settings.cjs").file(profile),
       JSON.stringify(saved),
     );
     await launch(true);

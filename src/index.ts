@@ -59,7 +59,6 @@ interface Context {
     end(id: string, status: "resolved" | "withdrawn"): Promise<unknown>;
   };
   audio: { play(file?: string): Promise<unknown> };
-  ui: { showPanel(panel: unknown): Promise<unknown> };
   settings: {
     get<T>(key: string, fallback: T): T;
     onChanged(handler: () => unknown): () => void;
@@ -119,32 +118,7 @@ async function endNotice(accountId: string, status: "resolved" | "withdrawn") {
 let context: Context,
   active = false,
   busy = false,
-  lastPanel = "",
   cancel: (() => void) | undefined;
-async function panel(accounts: Account[]) {
-  const value = {
-    title: "Gmail",
-    description:
-      "GmailのWeb画面をアカウントごとに表示し、受信トレイの更新を監視します。",
-    facts: accounts.map((a) => ({
-      label: a.name,
-      value: !context.settings.get("monitoring", true)
-        ? "全体の新着監視はOFFです"
-        : a.monitoring === false
-          ? "このアカウントの監視はOFFです"
-          : a.error || monitors.get(a.id)?.status || "ログインを待っています",
-    })),
-    actions: [
-      { title: "Gmailを開く", command: ID + ".open" },
-      { title: "新着表示をクリア", command: ID + ".acknowledge" },
-    ],
-  };
-  const json = JSON.stringify(value);
-  if (json !== lastPanel) {
-    await context.ui.showPanel(value);
-    lastPanel = json;
-  }
-}
 async function tick() {
   if (!active || busy) return;
   busy = true;
@@ -187,7 +161,7 @@ async function tick() {
             await context.audio.play(a.sound.file);
           } catch {
             await context.log.error(
-              "通知音を再生できません。WAVファイルを確認してください。",
+              "通知音を再生できません。音ライブラリーの設定を確認してください。",
             );
           }
         }
@@ -207,8 +181,8 @@ async function tick() {
             : `未読の新着を ${monitor.notificationArrivals.length} 件検知しました。`;
           const result = await context.notifications.publish({
             typeId: "new-mail",
-            title: ("Gmail — " + a.name).slice(0, 200),
-            body: body.slice(0, 2000),
+            title: "Gmail — " + a.name,
+            body,
             silent: true,
             historyText: {
               title: "Gmailの新着メール",
@@ -249,7 +223,6 @@ async function tick() {
     await context.tray.attention(
       [...monitors.values()].some((m) => m.attention),
     );
-    await panel(data.accounts);
   } catch {
     if (active)
       await context.log.error(

@@ -1,4 +1,6 @@
-const { getPublishDirectory } = require('../../AppDock.at365/scripts/publish-paths.cjs');
+const {
+  getPublishDirectory,
+} = require("../../AppDock.at365/scripts/publish-paths.cjs");
 // Offline fixtures only. The WAV is silent; real accounts and notification settings are untouched.
 const fs = require("node:fs"),
   path = require("node:path"),
@@ -10,7 +12,7 @@ const root = path.resolve(__dirname, ".."),
 const hostRequire = createRequire(path.join(host, "package.json"));
 const { _electron: electron } = hostRequire("playwright");
 const profile = path.join(root, ".artifacts", "ui-features-" + Date.now());
-const webRoot = path.join(profile, "data/web-accounts/at365.gmail");
+const webRoot = path.join(profile, "local/web-accounts/at365.gmail");
 const accounts = ["個人用", "仕事用"].map((name) => ({
   id: randomUUID(),
   name,
@@ -49,7 +51,10 @@ Object.assign(
     })),
   ]),
 );
-fs.writeFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), JSON.stringify(settings));
+fs.writeFileSync(
+  require("../../AppDock.at365/scripts/test-settings.cjs").file(profile),
+  JSON.stringify(settings),
+);
 const wave = Buffer.alloc(44 + 1600);
 wave.write("RIFF");
 wave.writeUInt32LE(wave.length - 8, 4);
@@ -65,6 +70,9 @@ wave.write("data", 36);
 wave.writeUInt32LE(1600, 40);
 const soundFile = path.join(profile, "silent.wav");
 fs.writeFileSync(soundFile, wave);
+const libraryOriginal = path.join(profile, "data/assets/sounds/silent.wav");
+fs.mkdirSync(path.dirname(libraryOriginal), { recursive: true });
+fs.writeFileSync(libraryOriginal, wave);
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 const portable = process.argv[2] && !process.argv[2].startsWith("--");
@@ -73,7 +81,9 @@ const executable = portable
   : hostRequire("electron");
 let app, dock, ui, importedSound;
 let portableProcess, portableBrowser;
-const { freePort, inspect, electronExpression } = hostRequire('./scripts/electron-main-helper.cjs');
+const { freePort, inspect, electronExpression } = hostRequire(
+  "./scripts/electron-main-helper.cjs",
+);
 async function until(fn, message) {
   const deadline = Date.now() + 20000;
   while (Date.now() < deadline) {
@@ -83,6 +93,18 @@ async function until(fn, message) {
   throw Error(message);
 }
 const snapshot = () => ui.evaluate(() => window.webAccounts.snapshot());
+async function chooseLibrarySound() {
+  await ui
+    .getByRole("button", { name: "音ライブラリーから選ぶ", exact: true })
+    .click();
+  const picker = dock.getByRole("dialog", { name: "音を選択", exact: true });
+  await picker.waitFor();
+  await picker
+    .getByRole("button", { name: "silent.wavを選択", exact: true })
+    .click();
+  await picker.getByRole("button", { name: "音を使う", exact: true }).click();
+  await picker.waitFor({ state: "hidden" });
+}
 async function remote(id, code) {
   return app.evaluate(
     async ({ webContents }, { id, code }) => {
@@ -135,31 +157,94 @@ async function key(id, shift = false, keyCode = "Tab") {
 async function launch() {
   // Prevent startup activation before protocol fixtures are installed on restart.
   const current = JSON.parse(
-    fs.readFileSync(require('../../AppDock.at365/scripts/test-settings.cjs').file(profile), "utf8"),
+    fs.readFileSync(
+      require("../../AppDock.at365/scripts/test-settings.cjs").file(profile),
+      "utf8",
+    ),
   );
   current.extensions["at365.gmail"].enabled = false;
   fs.writeFileSync(
-    require('../../AppDock.at365/scripts/test-settings.cjs').file(profile),
+    require("../../AppDock.at365/scripts/test-settings.cjs").file(profile),
     JSON.stringify(current),
   );
   if (portable) {
-    const target = hostRequire('./scripts/copy-host.cjs').prepareTestHost(executable, profile, path.join(root, '.artifacts'));
-    const hash = p => require('node:crypto').createHash('sha256').update(fs.readFileSync(p)).digest('hex');
-    assert.equal(hash(target),hash(executable));
-    const port=await freePort(), mainPort=await freePort();
-    portableProcess=require('node:child_process').spawn(target,['--test-profile='+profile,'--remote-debugging-port='+port,'--inspect='+mainPort],{cwd:host,env,windowsHide:true,stdio:'ignore'});
-    await until(async()=>{try {portableBrowser=await hostRequire('playwright').chromium.connectOverCDP('http://127.0.0.1:'+port,{timeout:1000});return true;}catch{return false;}},'portable CDP');
-    app={
-      context:()=>portableBrowser.contexts()[0],
-      firstWindow:async()=>{let page; await until(()=>{page=portableBrowser.contexts()[0].pages().find(p=>p.url().startsWith('appdock://host/'));return !!page;},'portable host');return page;},
-      evaluate:(fn,arg)=>inspect(mainPort,`(${fn.toString()})(${electronExpression},${JSON.stringify(arg)??'undefined'})`),
-      close:async()=>{await until(()=>portableProcess.exitCode!==null,'portable exit');await portableBrowser.close();},
+    const target = hostRequire("./scripts/copy-host.cjs").prepareTestHost(
+      executable,
+      profile,
+      path.join(root, ".artifacts"),
+    );
+    const hash = (p) =>
+      require("node:crypto")
+        .createHash("sha256")
+        .update(fs.readFileSync(p))
+        .digest("hex");
+    assert.equal(hash(target), hash(executable));
+    const port = await freePort(),
+      mainPort = await freePort();
+    portableProcess = require("node:child_process").spawn(
+      target,
+      [
+        "--test-profile=" + profile,
+        "--test-local-state=" + path.join(profile, "local"),
+        "--remote-debugging-port=" + port,
+        "--inspect=" + mainPort,
+      ],
+      { cwd: host, env, windowsHide: true, stdio: "ignore" },
+    );
+    await until(async () => {
+      try {
+        portableBrowser = await hostRequire(
+          "playwright",
+        ).chromium.connectOverCDP("http://127.0.0.1:" + port, {
+          timeout: 1000,
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    }, "portable CDP");
+    app = {
+      context: () => portableBrowser.contexts()[0],
+      firstWindow: async () => {
+        let page;
+        await until(() => {
+          page = portableBrowser
+            .contexts()[0]
+            .pages()
+            .find((p) => p.url().startsWith("appdock://host/"));
+          return !!page;
+        }, "portable host");
+        return page;
+      },
+      evaluate: (fn, arg) =>
+        inspect(
+          mainPort,
+          `(${fn.toString()})(${electronExpression},${JSON.stringify(arg) ?? "undefined"})`,
+        ),
+      close: async () => {
+        await until(() => portableProcess.exitCode !== null, "portable exit");
+        await portableBrowser.close();
+      },
     };
   } else {
-    app = await electron.launch({executablePath:executable,args:[host,'--test-profile='+profile],env});
+    app = await electron.launch({
+      executablePath: executable,
+      args: [
+        host,
+        "--test-profile=" + profile,
+        "--test-local-state=" + path.join(profile, "local"),
+      ],
+      env,
+    });
   }
   app.context().setDefaultTimeout(20000);
-  await until(() => { dock = app.context().pages().find(p => p.url().startsWith("appdock://host/")); return !!dock; }, "host window");
+  await until(() => {
+    dock = app
+      .context()
+      .pages()
+      .find((p) => p.url().startsWith("appdock://host/"));
+    return !!dock;
+  }, "host window");
   await dock.waitForFunction(() => !!window.dock);
   await app.evaluate(
     ({ app, dialog }, { soundFile, accounts }) => {
@@ -242,10 +327,10 @@ async function audioAndNotifications() {
     await ui.getByText("標準のビープ音", { exact: true }).count(),
     0,
   );
-  await ui.getByRole("button", { name: "WAVを登録", exact: true }).click();
+  await chooseLibrarySound();
   await until(
-    async () => (await snapshot()).accounts[0].sound.file === "silent.wav",
-    "registered WAV",
+    async () => (await snapshot()).accounts[0].sound.name === "silent.wav",
+    "retained library sound",
   );
   assert.equal((await snapshot()).accounts[0].sound.enabled, false);
   await preview.click();
@@ -259,11 +344,11 @@ async function audioAndNotifications() {
     "silent selection",
   );
   assert.equal(await preview.isDisabled(), true);
-  await ui.getByLabel("登録済みの通知音").selectOption("silent.wav");
+  await chooseLibrarySound();
   await ui.getByLabel("このアカウントの通知音を鳴らす").check();
   await ui.screenshot({ path: path.join(profile, "sound-current.png") });
   checks.push(
-    "WAV registration, preview while OFF, clear to silence, disabled empty preview and independent sound enable",
+    "shared sound selection, preview while OFF, clear to silence, disabled empty preview and independent sound enable",
   );
   await app.evaluate(({ app }) => {
     const req = process
@@ -665,24 +750,22 @@ async function audioAndNotifications() {
       .getByRole("button", { name: "アカウント設定", exact: true })
       .click();
     await ui.getByLabel("このアカウントの通知音を鳴らす").check();
-    await ui.getByRole("button", { name: "WAVを登録", exact: true }).click();
+    await chooseLibrarySound();
     await until(
       async () =>
-        (await snapshot()).accounts[0].sound.file === "silent.wav" &&
+        (await snapshot()).accounts[0].sound.name === "silent.wav" &&
         (await snapshot()).accounts[0].sound.file !== soundFile,
       "pick WAV",
     );
     importedSound = path.join(
       profile,
-      "data",
-      "assets",
-      "applets",
-      "at365.gmail",
-      "sounds",
-      (await snapshot()).accounts[0].sound.file,
+      "data/assets/assigned-sounds",
+      (await snapshot()).accounts[0].sound.file.slice(
+        "@library/@assigned/".length,
+      ),
     );
     assert.deepEqual(fs.readFileSync(importedSound), wave);
-    assert.deepEqual((await snapshot()).registeredSounds, ["silent.wav"]);
+    assert.equal((await snapshot()).accounts[0].sound.name, "silent.wav");
     await ui.getByRole("button", { name: "選択を解除", exact: true }).click();
     await until(
       async () => !(await snapshot()).accounts[0].sound.file,
@@ -696,19 +779,17 @@ async function audioAndNotifications() {
       await ui.getByText("標準のビープ音", { exact: true }).count(),
       0,
     );
-    await ui.getByLabel("登録済みの通知音").selectOption("silent.wav");
+    await chooseLibrarySound();
     await until(
-      async () => (await snapshot()).accounts[0].sound.file === "silent.wav",
+      async () => (await snapshot()).accounts[0].sound.name === "silent.wav",
       "select registered sound",
     );
     const different = Buffer.from(wave);
     different[different.length - 1] = 1;
-    fs.writeFileSync(soundFile, different);
-    await ui.getByRole("button", { name: "WAVを登録", exact: true }).click();
-    await ui.getByText(/同名の別ファイルが登録されています/).waitFor();
+    fs.writeFileSync(libraryOriginal, different);
     assert.deepEqual(fs.readFileSync(importedSound), wave);
-    assert.equal((await snapshot()).accounts[0].sound.file, "silent.wav");
-    fs.writeFileSync(soundFile, wave);
+    assert.equal((await snapshot()).accounts[0].sound.name, "silent.wav");
+    fs.writeFileSync(libraryOriginal, wave);
     fs.unlinkSync(soundFile);
     await ui.getByRole("button", { name: "試聴", exact: true }).click();
     await until(
@@ -886,20 +967,17 @@ async function audioAndNotifications() {
     });
     await new Promise((resolve) => setTimeout(resolve, 500));
     await close();
-    const saved = JSON.parse(
-      fs.readFileSync(path.join(webRoot, "window-state.json"), "utf8"),
-    );
-    assert.deepEqual(saved.bounds, normalGeometry);
-    assert.equal(saved.maximized, true);
     const legacyFile = path.join(profile, "legacy.wav");
     fs.writeFileSync(legacyFile, wave);
-    const groupStateFile = path.join(profile, "data/web-account-groups/at365.google/state.json");
-    const savedAccounts = JSON.parse(fs.readFileSync(groupStateFile, "utf8"));
-    savedAccounts.members["at365.gmail"].preferences.find(a => a.id === accounts[1].id).sound = { enabled: true, file: legacyFile };
-    fs.writeFileSync(
-      groupStateFile,
-      JSON.stringify(savedAccounts),
+    const groupStateFile = path.join(
+      profile,
+      "local/web-account-groups/at365.google/state.json",
     );
+    const savedAccounts = JSON.parse(fs.readFileSync(groupStateFile, "utf8"));
+    savedAccounts.members["at365.gmail"].preferences.find(
+      (a) => a.id === accounts[1].id,
+    ).sound = { enabled: true, file: legacyFile };
+    fs.writeFileSync(groupStateFile, JSON.stringify(savedAccounts));
     // Restart reuses only the fixture profile; accounts and sound must survive.
     await launch();
     const restored = await app.evaluate(({ BrowserWindow }) => {
@@ -917,11 +995,13 @@ async function audioAndNotifications() {
     const restoredAccounts = (await snapshot()).accounts;
     assert.deepEqual(restoredAccounts[0].sound, {
       enabled: true,
-      file: "silent.wav",
+      file: "@library/@assigned/" + path.basename(importedSound),
+      name: "silent.wav",
     });
     assert.deepEqual(restoredAccounts[1].sound, {
       enabled: true,
-      file: "legacy.wav",
+      file: "@library/@assigned/" + path.basename(importedSound),
+      name: "legacy.wav",
     });
     assert.deepEqual(fs.readFileSync(importedSound), wave);
     assert.ok(fs.existsSync(legacyFile));

@@ -92,7 +92,6 @@ test("temporary DOM mutation settling preserves baseline; invalid snapshots cann
     {},
     o(["x", "x"]),
     o([42]),
-    o(["x".repeat(201)]),
     o(["a"], { revision: NaN }),
   ])
     assert.equal(parseObservation(raw), null);
@@ -162,14 +161,8 @@ test("metadata is optional, validated and session history remains bounded", () =
   }
   assert.equal(m.pending, 65);
   assert.ok(m.history.length <= 50 && m.history.length > 0);
-  assert.ok(
-    Buffer.byteLength(
-      JSON.stringify({ pending: m.pending, arrivals: m.history }),
-    ) <= 48000,
-  );
   for (const details of [
     [{ key: "other", sender: "A", subject: "S" }],
-    [{ key: "a", sender: "A", subject: "S".repeat(201) }],
     [null],
     "wrong",
   ])

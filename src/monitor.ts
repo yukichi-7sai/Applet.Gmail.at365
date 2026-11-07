@@ -31,32 +31,26 @@ export function parseObservation(raw: unknown): InboxObservation | null {
     typeof v.document !== "string" ||
     !Number.isSafeInteger(v.revision) ||
     !Array.isArray(v.keys) ||
-    v.keys.length > 200 ||
-    v.keys.some((k) => typeof k !== "string" || !k || k.length > 200) ||
+    v.keys.some((k) => typeof k !== "string" || !k) ||
     new Set(v.keys).size !== v.keys.length ||
     (v.complete !== undefined && typeof v.complete !== "boolean") ||
     (v.rowsComplete !== undefined && typeof v.rowsComplete !== "boolean") ||
     (v.complete === true && v.rowsComplete === false) ||
     (v.unread !== undefined &&
       (!Array.isArray(v.unread) ||
-        v.unread.length > 200 ||
         v.unread.some((k) => !v.keys.includes(k)))) ||
     (v.read !== undefined &&
       (!Array.isArray(v.read) ||
-        v.read.length > 200 ||
         v.read.some((k) => !v.keys.includes(k) || v.unread?.includes(k)))) ||
     (v.details !== undefined &&
       (!Array.isArray(v.details) ||
-        v.details.length > 40 ||
         new Set(v.details.map((d) => d?.key)).size !== v.details.length ||
         v.details.some(
           (d) =>
             !d ||
             !v.keys.includes(d.key) ||
             typeof d.sender !== "string" ||
-            d.sender.length > 120 ||
-            typeof d.subject !== "string" ||
-            d.subject.length > 200,
+            typeof d.subject !== "string",
         )))
   )
     return null;
@@ -248,12 +242,6 @@ export class InboxMonitor {
     this.pending = [...this.pendingThreads.values()].filter(
       (unread) => unread === true,
     ).length;
-    while (
-      new TextEncoder().encode(
-        JSON.stringify({ pending: this.pending, arrivals: this.history }),
-      ).length > 48000
-    )
-      this.history.pop();
     this.attention = this.pending > 0;
     this.status = this.attention
       ? "新着メールがあります"

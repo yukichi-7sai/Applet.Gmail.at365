@@ -118,13 +118,11 @@
   const unread = [];
   const read = [];
   const details = [];
-  let detailBytes = 0;
-  const text = (value, limit) =>
+  const text = (value) =>
     (value || "")
       .replace(/[\u0000-\u001f\u007f]/g, " ")
       .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, limit);
+      .trim();
   for (const row of rows) {
     const thread = row.matches("[data-legacy-thread-id], [data-thread-id]")
       ? row
@@ -158,17 +156,11 @@
           senderElement?.getAttribute("name") ||
             senderElement?.textContent ||
             senderElement?.getAttribute("email"),
-          120,
         ),
-        subject: text(subjectElement?.textContent, 200),
+        subject: text(subjectElement?.textContent),
       };
-      const bytes = new TextEncoder().encode(JSON.stringify(detail)).length;
-      if (details.length < 40 && detailBytes + bytes <= 12000) {
-        details.push(detail);
-        detailBytes += bytes;
-      }
+      details.push(detail);
     }
-    if (keys.length === 200) break;
   }
   // An explicit Gmail empty-state marker is needed; unknown DOM is unavailable.
   const empty =
@@ -178,7 +170,7 @@
         .filter(visible)
         .some((e) =>
           /^(新着メールはありません。|受信トレイにメールはありません。|No new mail!?|Your inbox is empty\.)$/i.test(
-            text(e.textContent, 200),
+            text(e.textContent),
           ),
         ));
   // Gmail's range has three numeric spans: first, last, total. Only claim
@@ -213,20 +205,5 @@
     rowsComplete,
     reason: keys.length || empty ? undefined : "no-row-ids",
   };
-  // Keep the host observation bounded even for unusual long IDs or multibyte text.
-  while (
-    new TextEncoder().encode(JSON.stringify(state.cache)).length > 55000 &&
-    keys.length
-  ) {
-    const key = keys.pop();
-    state.cache.complete = false;
-    state.cache.rowsComplete = false;
-    const u = unread.indexOf(key);
-    if (u >= 0) unread.splice(u, 1);
-    const r = read.indexOf(key);
-    if (r >= 0) read.splice(r, 1);
-    const d = details.findIndex((detail) => detail.key === key);
-    if (d >= 0) details.splice(d, 1);
-  }
   return state.cache;
 })();

@@ -768,7 +768,8 @@ function App() {
                 <section className="settings-card account-order">
                   {snapshot?.group && (
                     <p className="hint">
-                      {snapshot.group.title}の一覧・表示名・順番は、同じグループを使うAppletで共有します。ログイン状態は同じPC内で共用します。
+                      {snapshot.group.title}
+                      の一覧・表示名・順番は、同じグループを使うAppletで共有します。ログイン状態は同じPC内で共用します。
                       ログアウトや削除は、ほかの参加Appletにも影響します。
                       選択中のアカウント・新着監視・通知音はGmail専用です。
                     </p>
@@ -986,36 +987,11 @@ function App() {
                     このアカウントの通知音を鳴らす
                   </label>
                   <div className="sound-file">
-                    <select
-                      aria-label="登録済みの通知音"
-                      disabled={busy || !account}
-                      value={account?.sound.file || ""}
-                      onChange={(event) => {
-                        const file = event.currentTarget.value;
-                        void run(() =>
-                          window.webAccounts.setSound(account!.id, {
-                            enabled: account!.sound.enabled,
-                            file,
-                          }),
-                        );
-                      }}
-                    >
-                      <option value="">未選択（無音）</option>
-                      {account?.sound.file &&
-                        !snapshot?.registeredSounds?.includes(
-                          account.sound.file,
-                        ) && (
-                          <option value={account.sound.file}>
-                            {account.sound.name || account.sound.file}
-                            （同期待ち・未登録）
-                          </option>
-                        )}
-                      {(snapshot?.registeredSounds ?? []).map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
+                    <span aria-label="選択中の通知音">
+                      {account?.sound.file
+                        ? account.sound.name || "選択済みの音"
+                        : "未選択（無音）"}
+                    </span>
                     <button
                       disabled={busy || !account}
                       onClick={() =>
@@ -1024,7 +1000,7 @@ function App() {
                         )
                       }
                     >
-                      WAVを登録
+                      音ライブラリーから選ぶ
                     </button>
                     <button
                       disabled={busy || !account?.sound.file}
@@ -1051,7 +1027,7 @@ function App() {
                     </button>
                   </div>
                   <p className="hint">
-                    登録したWAVはAppDockフォルダーに保存し、一覧から何度でも選べます。同名の別ファイルは登録できません。未選択では鳴りません。試聴はWAV選択済みなら通知音がOFFでも再生できます。
+                    音ライブラリーから音を選べます。未選択では鳴りません。試聴は音を選択済みなら通知音がOFFでも再生できます。
                   </p>
                   {account?.soundError && (
                     <p className="error-banner" role="alert">
