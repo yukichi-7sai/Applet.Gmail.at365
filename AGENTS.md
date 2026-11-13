@@ -8,7 +8,7 @@
 - Gmailはat365.googleアカウントグループを宣言する。名簿は共有data、ログイン・選択・監視・通知音割当はPC専用。同じグループのAppletだけが名簿と同じPCのsessionを共用する。WebApplet枠との共用は行わない。保存と復旧の正本は[グループ設計](../AppDock.at365/docs/web-accounts.md)。
 - 通知音はホストの共通音ライブラリーとsetSound/pickSound/testSoundを使う。選択は共通UIへ委ね、@library/@assigned参照と表示名を保存する。既存音と割り当ての移行はホストが担当する。独自の保存領域・一覧・ID対応表を追加せず、枠の削除で共有素材を削除しない。
 - Nodeのaudio.playへ通知音の共通ライブラリー参照を渡し、本体が検証・解決する。リモートGmailへNode/ホストAPIを公開しない。
-- build/test/publishはAppDockのローカルNodeと既存publish.batを使う。実装完了時はGmailを版更新して自身の40.ARTIFACT配下へ発行する。commit/push/Release/deployは別の依頼に従う。
+- build/test/publishはAppDockのローカルNodeと既存publish.batを使う。実装完了時はGmailを版更新して自身の発行先へ発行する。commit/push/Release/deployは別の依頼に従う。
 - 音声UIの変更ではtests、scripts/test-ui-features.cjs、ホストのsettings-sync-ui-test.cjsを確認する。GUIは隔離profileで直列実行し、ビルド中のout再生成と重ねない。実Googleログイン・実メール・実2PC同期とオフラインfixtureを区別する。
 
 - 外部公開コマンドは自身のextension.jsonで宣言する。ホストへGmail専用の許可一覧を戻さない。契約は[共通操作API](../AppDock.at365/docs/automation.md#appletによる公開宣言)を参照する。

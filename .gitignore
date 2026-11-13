@@ -3,3 +3,4 @@ dist/
 publish/
 .artifacts/
 node_modules/
+/publish.local.json

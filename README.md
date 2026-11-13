@@ -14,4 +14,4 @@
 .\publish.bat
 ```
 
-出力先は `A:\40.ARTIFACT\Applet.Gmail.at365` です。詳しい手順と機能・操作・設定の文書は[開発ガイド](DEVELOPMENT.md)を参照してください。
+出力先は `.artifacts/publish` です。詳しい手順と機能・操作・設定の文書は[開発ガイド](DEVELOPMENT.md)を参照してください。

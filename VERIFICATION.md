@@ -1,11 +1,25 @@
 # 検証記録
 
+## 2026-11-14 コミット前の照合
+
+- 実装完了時に記録した134入力ファイルのSHA256が一致し、別作業の変更と既存stageがないことを確認。
+- 本repoは文書・Git除外・設定例だけの変更。リンクとdiff検査を再確認し、製品回帰・再発行は不要。
+- 発行済み8 ZIPのSHA256も一致し、検証済み配布物を維持。ローカル設定はGit管理外。照合後の変更は本検証記録の追記だけで、製品の追加修正・版更新・再発行なし。
+- 判定・成功ログ・stage/commit treeの照合記録は`.artifacts/commit-validation-publish-paths-20261114/`へ保存。コミットは対象ファイルに限定し、push・Release・実利用先配置は行わない。
+
+## 2026-11-14 発行先のローカル設定と公開記録の整理
+
+- 環境固有の出力先をGit管理外`publish.local.json`へ分離。相対値は設定ファイル基準、未設定時は各repo内`.artifacts/publish`。worktree専用の出力名と既存の明示出力先指定を維持。
+- 公開するコード・文書・検証記録から環境固有の出力名を除去。以前の記録は論理パスへ置換し、元の記録を各repoの`.artifacts/publish-paths-private-20261114/original/`へ保存。Git履歴は変更していない。
+- 本repoの変更は公開文書・検証記録・ローカル設定のGit除外。製品コード・版・配布内容の変更はなく、再発行/製品回帰は不要。共有発行先ヘルパーは本体の5項目で検証し、参照リンクとdiff検査を確認。
+
+
 ## 2026-11-07 共通音ライブラリーと現行契約（0.13.0）
 
 - 旧パネル送信とui capabilityを除去し、音の選択/表示/解除/試聴を本体の共通ライブラリーへ接続した。通知はnew-mailのpublish/endと共通audio.playを継続。旧転送容量に由来する行数・本文・履歴の切り捨てを除去し、利用者が選ぶ履歴保持件数を維持した。既存音と割り当ての移行は本体0.180.0が担当する。
 - build/標準回帰26件、発行EXEのオフライン2アカウント試験、音声・通知GUIに成功。未使用音を含む移行、元ファイル不変、ID/名前/選択/ON・OFF、共通選択の取消・確定、OFF中の試聴、元音の変更・削除後の保管コピー、DOM新着/履歴/解除/停止・再起動を確認した。本体側の移行失敗/競合・再試行と2配置の同期試験も成功した。
 - 古いGUI試験のMCP形式、管理コマンド・設定公開範囲、既定値省略保存、起動待ち、2つのリモート画面の識別と再有効化後のページ表示を現行契約へ修正して再検証した。初期失敗ログは保持する。実Googleログイン・実メールと物理音声出力は未確認。フルUI試験のうち変更に関係する音声モードと固定EXE移行試験を選び、無関係な全回帰は追加していない。
-- 最低本体版引き上げでminor更新。publish.bat -Testで40.ARTIFACTへ発行し、manifest/feed/ZIPの版・最低本体版・サイズ・SHA256を照合した。証跡は`../AppDock.at365/.artifacts/legacy-api-retirement-20261107/`、コミット照合は同repoの`.artifacts/commit-validation-legacy-api-retirement-20261107/`。実利用データは変更しておらず、初回起動時の自動移行で引き継ぐ。mainでローカルコミットし、push・Release・実利用先配置は行わない。
+- 最低本体版引き上げでminor更新。publish.bat -Testで<PUBLISH_ROOT>へ発行し、manifest/feed/ZIPの版・最低本体版・サイズ・SHA256を照合した。証跡は`../AppDock.at365/.artifacts/legacy-api-retirement-20261107/`、コミット照合は同repoの`.artifacts/commit-validation-legacy-api-retirement-20261107/`。実利用データは変更しておらず、初回起動時の自動移行で引き継ぐ。mainでローカルコミットし、push・Release・実利用先配置は行わない。
 
 ## 2026-11-03 配置ツール整理のコミット前照合
 
@@ -14,7 +28,7 @@
 
 ## 2026-11-03 開発用配置スクリプトの除去
 
-- deployment一式と40.ARTIFACT内の配置用スクリプト・記入例・配置先設定を、存在する範囲で削除した。publishから専用コピー処理を外し、開発文書と不要なGit除外規則を整理した。
+- deployment一式と<PUBLISH_ROOT>内の配置用スクリプト・記入例・配置先設定を、存在する範囲で削除した。publishから専用コピー処理を外し、開発文書と不要なGit除外規則を整理した。
 - 差分レビューで既存のビルドと更新ZIP/JSON生成を保持していることを確認した。変更スクリプトの構文・現行の廃止ファイル参照・git diff --checkと、本体を含む全9repoの発行先計算を確認した。発行先の配置ツール以外のファイルは削除前後のSHA256が一致した。
 - 製品コード・manifest・依存・設定/保存仕様と配布payloadは変更していない。開発用配置ツールの整理として製品版更新・再ビルド・再発行なし。製品回帰・GUI・実利用先配置・commit・push・Releaseは実施していない。共通の削除一覧・ハッシュ・検証結果は../AppDock.at365/.artifacts/deploy-removal-20261103/を参照する。過去の検証記録は履歴として保持する。
 
@@ -41,14 +55,14 @@
 ## 2026-10-29: Applet情報のアイコンとキャッチコピー 0.12.2
 
 - main/追跡先とcleanを確認し、通常環境のpull --ff-only後に、manifestの任意表示情報 `icon: mail` と `tagline: メールの確認を、もっと身近に。` を設定。設定・コマンド・保存・権限・最低本体版は変更せず、0.12.1→0.12.2のパッチ更新として関連する版の正本を揃えた。発行前にmetadataと版の差分をレビューし、阻害事項なし。
-- 標準publish.batで40.ARTIFACTへ発行。配置manifest/ZIP内manifest/feedのID・版・icon/tagline、ZIPのサイズ/SHA256を照合し成功。native/.NETはProductVersionも一致。本体0.101.6の固定EXEへ発行物をコピーし、停止状態で情報パネルの表示を確認した。通常のApplet起動や外部サービス・実入力は実行していない。
+- 標準publish.batで<PUBLISH_ROOT>へ発行。配置manifest/ZIP内manifest/feedのID・版・icon/tagline、ZIPのサイズ/SHA256を照合し成功。native/.NETはProductVersionも一致。本体0.101.6の固定EXEへ発行物をコピーし、停止状態で情報パネルの表示を確認した。通常のApplet起動や外部サービス・実入力は実行していない。
 - 共通の入力・完全ログ・配布照合は`../AppDock.at365/.artifacts/applet-branding-20261029/`、本体の`VERIFICATION.md`、本repoの`.artifacts/applet-branding-20261029/validation.json`を参照。機能別の標準全回帰は今回実行せず、表示情報と配布の影響に必要な範囲を検証した。既存の再利用資料を保持し、今回の整理による削除なし。コミット/プッシュ/Release/実利用deployは行っていない。
 
 ## 2026-10-19: GitHub更新元の新アカウント対応（0.12.1）
 
 - 開始時main／clean、現在のorigin/mainからpull --ff-only成功（Already up to date）。更新元を`yukichi-7sai/Applet.Gmail.at365`へ統一。updateRepository未登録を追加。publish.bat -Testの型検査・ビルドと標準25/25成功。
 
-- 発行前レビューは指摘なし。設定項目・保存ファイル・公開APIの追加削除なしのためパッチ更新。既存publish.batで自身の40.ARTIFACT配下へ発行成功。ZIP/feed/同梱manifestのID・版・size・SHA256・runtimeの存在が一致。
+- 発行前レビューは指摘なし。設定項目・保存ファイル・公開APIの追加削除なしのためパッチ更新。既存publish.batで自身の<PUBLISH_ROOT>配下へ発行成功。ZIP/feed/同梱manifestのID・版・size・SHA256・runtimeの存在が一致。
 
 - 最終AppDock 0.62.4 EXE（SHA256 043d72acd4f4176d0417bbc4166a111cecc5aaa7e8740baf21b8d6647b0e85ab）と最終Applet一式を隔離コピー。全6Appletを停止した状態で、保存済み旧指定の保持、新しい既定値の説明、版表示、「既定に戻す」後の画面／メモリ／settings.jsonの一致、停止状態維持を各Appletで確認。正常終了0。
 
