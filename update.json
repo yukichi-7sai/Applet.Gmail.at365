@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "kind": "applet",
+  "id": "at365.gmail",
+  "version": "0.13.0",
+  "minimumHostVersion": "0.180.0",
+  "release": {
+    "tag": "v0.13.0",
+    "publishedAt": "2026-11-16T22:31:16Z"
+  },
+  "payload": {
+    "file": "update.zip",
+    "sha256": "3f9f58381386c3afbd2df1817defa5b4b290f1a2e823a077b9ea23dd86f6028b",
+    "size": 90338,
+    "format": "zip",
+    "url": "https://github.com/yukichi-7sai/Applet.Gmail.at365/releases/download/v0.13.0/update.zip"
+  }
+}

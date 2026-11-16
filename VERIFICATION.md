@@ -1,5 +1,11 @@
 # 検証記録
 
+## 2026-11-17 公開版索引とRelease（0.13.0）
+
+- 同版のソース・発行済みZIPの全収録ファイル、ID/版/最低本体版、サイズ/SHA256と標準単体回帰を確認。製品コード・版・配布物は変更せず、既存同版のReleaseは再作成しない。
+- 正式Releaseの匿名feed/ZIP取得とタグ固定元の実更新確認が成功。公開版索引を追加し、ZIP取得先を同じrepoの固定タグへ限定した。
+- 公開先は[v0.13.0](https://github.com/yukichi-7sai/Applet.Gmail.at365/releases/tag/v0.13.0)。raw索引の確認と旧Release整理の実行結果は`.artifacts/release-repository-feed-20261117/receipt.json`と同フォルダーの整理結果へ保存する。
+
 ## 2026-11-14 コミット前の照合
 
 - 実装完了時に記録した134入力ファイルのSHA256が一致し、別作業の変更と既存stageがないことを確認。
